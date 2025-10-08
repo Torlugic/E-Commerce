@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { useAuth } from "../../contexts/AuthContext";
-import { useThemeCtx } from "../layout/ThemeProvider";
+import { useAuth } from "../../hooks/useAuth";
+import { useThemeContext } from "../../hooks/useThemeContext";
 
 export default function Profile() {
   const { user, logout, loading } = useAuth();
-  const { mode, toggle } = useThemeCtx();
+  const { mode, toggle } = useThemeContext();
 
   const joined = useMemo(() => {
     if (!user?.createdAt) return null;

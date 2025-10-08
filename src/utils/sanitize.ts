@@ -1,5 +1,8 @@
-const CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F]/g;
-const CONTROL_EXCEPT_NEWLINES = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g;
+const CONTROL_RANGE = "\\u0000-\\u001F\\u007F-\\u009F";
+const CONTROL_EXCEPT_NEWLINES_RANGE = "\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F";
+
+const CONTROL_CHARS = new RegExp(`[${CONTROL_RANGE}]`, "g");
+const CONTROL_EXCEPT_NEWLINES = new RegExp(`[${CONTROL_EXCEPT_NEWLINES_RANGE}]`, "g");
 
 type SanitizeTextOptions = {
   maxLength?: number;
@@ -53,6 +56,7 @@ export function sanitizeUrl(value?: string | null): string | undefined {
       return parsed.toString();
     }
   } catch (error) {
+    console.warn("Invalid URL discarded", error);
     return undefined;
   }
   return undefined;

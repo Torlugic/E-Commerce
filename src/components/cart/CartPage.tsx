@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useCart } from "../../contexts/CartContext";
+import { useCart } from "../../hooks/useCart";
 import { fetchProducts } from "../../services/catalog";
 import type { Product, ProductVariant } from "../../models/types";
 
@@ -42,39 +42,28 @@ export default function CartPage() {
       });
     return () => {
       controller.abort();
-    let mounted = true;
-    setCatalogLoading(true);
-    fetchProducts()
-      .then((result) => {
-        if (mounted) setProducts(result);
-      })
-      .catch((err) => {
-        console.error("Failed to load products", err);
-        if (mounted) setError("Unable to load products right now");
-      })
-      .finally(() => {
-        if (mounted) setCatalogLoading(false);
-      });
-    return () => {
-      mounted = false;
     };
   }, []);
 
   const items: DetailedCartItem[] = useMemo(() => {
     if (!cart) return [];
-    return cart.items
-      .map((item) => {
-        const product = products.find((p) => p.id === item.productId);
-        const variant = product?.variants.find((v) => v.id === item.variantId);
-        if (!product || !variant) return null;
-        return {
-          product,
-          variant,
-          quantity: item.quantity,
-          lineTotal: variant.price.amount * item.quantity,
-        } satisfies DetailedCartItem;
-      })
-      .filter((value): value is DetailedCartItem => Boolean(value));
+    const result: DetailedCartItem[] = [];
+
+    for (const item of cart.items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) continue;
+      const variant = product.variants.find((v) => v.id === item.variantId);
+      if (!variant) continue;
+
+      result.push({
+        product,
+        variant,
+        quantity: item.quantity,
+        lineTotal: variant.price.amount * item.quantity,
+      });
+    }
+
+    return result;
   }, [cart, products]);
 
   const currency = items[0]?.variant.price.currency ?? cart?.subtotal.currency ?? "CAD";
@@ -83,8 +72,9 @@ export default function CartPage() {
   const handleQuantityChange = async (productId: string, variantId: string, nextQuantity: number) => {
     try {
       await updateItemQuantity(productId, variantId, nextQuantity);
-    } catch (err: any) {
-      toast.error(err.message || "Unable to update quantity");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update quantity";
+      toast.error(message);
     }
   };
 
@@ -92,8 +82,9 @@ export default function CartPage() {
     try {
       await removeItem(productId, variantId);
       toast.success("Item removed from cart");
-    } catch (err: any) {
-      toast.error(err.message || "Unable to remove item");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to remove item";
+      toast.error(message);
     }
   };
 
@@ -101,8 +92,9 @@ export default function CartPage() {
     try {
       await clearCart();
       toast.success("Cart cleared");
-    } catch (err: any) {
-      toast.error(err.message || "Unable to clear cart");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to clear cart";
+      toast.error(message);
     }
   };
 

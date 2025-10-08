@@ -1,17 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Cart } from "../models/types";
+import { CartContext } from "./cartContext";
+import type { CartContextValue } from "./cartTypes";
 import * as cartService from "../services/cart";
-
-type CartContextType = {
-  cart: Cart | null;
-  loading: boolean;
-  addItem: (productId: string, variantId: string, quantity?: number) => Promise<void>;
-  updateItemQuantity: (productId: string, variantId: string, quantity: number) => Promise<void>;
-  removeItem: (productId: string, variantId: string) => Promise<void>;
-  clearCart: () => Promise<void>;
-};
-
-const CartCtx = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
@@ -56,15 +47,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart(next);
   }, []);
 
-  return (
-    <CartCtx.Provider value={{ cart, loading, addItem, updateItemQuantity, removeItem, clearCart: clearCartHandler }}>
-      {children}
-    </CartCtx.Provider>
-  );
-}
+  const value: CartContextValue = {
+    cart,
+    loading,
+    addItem,
+    updateItemQuantity,
+    removeItem,
+    clearCart: clearCartHandler,
+  };
 
-export function useCart() {
-  const ctx = useContext(CartCtx);
-  if (!ctx) throw new Error("useCart must be used within CartProvider");
-  return ctx;
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

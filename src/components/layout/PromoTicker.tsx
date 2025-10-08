@@ -1,4 +1,4 @@
-import { usePromoVisibility } from "../../hooks/usePromoVisibility"
+import { usePromoVisibility } from "../../hooks/usePromoVisibility";
 import { tickerConfig } from "../../config/ticker";
 
 type PromoItem = { id: string | number; text: string; href?: string };

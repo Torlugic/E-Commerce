@@ -228,7 +228,7 @@ function sanitizeProduct(value: Record<string, unknown>): {
     }
     if (variantIds.has(result.variant.id)) {
       issues.push(
-        toIssue("warning", `duplicate variant id \"${result.variant.id}\" was ignored`, ["variants", index, "id"])
+        toIssue("warning", `duplicate variant id "${result.variant.id}" was ignored`, ["variants", index, "id"])
       );
       return;
     }
@@ -322,7 +322,7 @@ export function parseProductList(input: unknown): ProductListParseResult {
     }
     if (seen.has(result.product.id)) {
       issues.push(
-        toIssue("warning", `duplicate product id \"${result.product.id}\" was ignored`, [index, "id"])
+        toIssue("warning", `duplicate product id "${result.product.id}" was ignored`, [index, "id"])
       );
       return;
     }
