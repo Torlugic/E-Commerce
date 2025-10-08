@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { AuthCredentials, UserProfile } from "../models/types";
-import { AuthContext } from "./authContext";
-import type { AuthContextValue } from "./authTypes";
 import * as authService from "../services/auth";
 
+type AuthContextType = {
+  user: UserProfile | null;
+  loading: boolean;
+  initialized: boolean;
+  login: (credentials: AuthCredentials) => Promise<UserProfile>;
+  signup: (data: AuthCredentials & { name?: string }) => Promise<UserProfile>;
+  logout: () => Promise<void>;
+  setUser: (profile: UserProfile | null) => void;
+};
+
 const STORAGE_KEY = "auth:user";
+
+const AuthCtx = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -97,15 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persist(profile);
   }, [persist]);
 
-  const value: AuthContextValue = {
-    user,
-    loading,
-    initialized,
-    login,
-    signup,
-    logout,
-    setUser: setUserHandler,
-  };
+  return (
+    <AuthCtx.Provider value={{ user, loading, initialized, login, signup, logout, setUser: setUserHandler }}>
+      {children}
+    </AuthCtx.Provider>
+  );
+}
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

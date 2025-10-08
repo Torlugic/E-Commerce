@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useCart } from "../../hooks/useCart";
+import { useCart } from "../../contexts/CartContext";
 import { fetchProducts } from "../../services/catalog";
 import type { Product, ProductVariant } from "../../models/types";
 
@@ -42,6 +42,21 @@ export default function CartPage() {
       });
     return () => {
       controller.abort();
+    let mounted = true;
+    setCatalogLoading(true);
+    fetchProducts()
+      .then((result) => {
+        if (mounted) setProducts(result);
+      })
+      .catch((err) => {
+        console.error("Failed to load products", err);
+        if (mounted) setError("Unable to load products right now");
+      })
+      .finally(() => {
+        if (mounted) setCatalogLoading(false);
+      });
+    return () => {
+      mounted = false;
     };
   }, []);
 
@@ -68,9 +83,8 @@ export default function CartPage() {
   const handleQuantityChange = async (productId: string, variantId: string, nextQuantity: number) => {
     try {
       await updateItemQuantity(productId, variantId, nextQuantity);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to update quantity";
-      toast.error(message);
+    } catch (err: any) {
+      toast.error(err.message || "Unable to update quantity");
     }
   };
 
@@ -78,9 +92,8 @@ export default function CartPage() {
     try {
       await removeItem(productId, variantId);
       toast.success("Item removed from cart");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to remove item";
-      toast.error(message);
+    } catch (err: any) {
+      toast.error(err.message || "Unable to remove item");
     }
   };
 
@@ -88,9 +101,8 @@ export default function CartPage() {
     try {
       await clearCart();
       toast.success("Cart cleared");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to clear cart";
-      toast.error(message);
+    } catch (err: any) {
+      toast.error(err.message || "Unable to clear cart");
     }
   };
 

@@ -5,7 +5,7 @@ import ProductList from "../components/product/ProductList";
 import { brand } from "../config/brand";
 import type { Product, ProductVariant } from "../models/types";
 import { fetchProducts } from "../services/catalog";
-import { useCart } from "../hooks/useCart";
+import { useCart } from "../contexts/CartContext";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -39,6 +39,22 @@ export default function Home() {
 
     return () => {
       controller.abort();
+    let mounted = true;
+    setLoading(true);
+    fetchProducts()
+      .then((result) => {
+        if (mounted) setProducts(result);
+      })
+      .catch((err) => {
+        console.error("Failed to load products", err);
+        if (mounted) setError("We couldn't load featured products. Please try again later.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
     };
   }, []);
 
@@ -48,9 +64,8 @@ export default function Home() {
     try {
       await addItem(product.id, variant.id, 1);
       toast.success(`${product.title} added to cart`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not add to cart";
-      toast.error(message);
+    } catch (err: any) {
+      toast.error(err.message || "Could not add to cart");
     }
   };
 

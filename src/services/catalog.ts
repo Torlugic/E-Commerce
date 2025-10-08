@@ -88,4 +88,21 @@ export async function fetchProductById(
   const parsed = parseProduct(raw);
   logValidationIssues("Product", parsed.issues, trimmedId);
   return parsed.product ?? undefined;
+
+const PRODUCTS_ENDPOINT = "/products";
+
+export async function fetchProducts(): Promise<Product[]> {
+  if (usingMocks()) {
+    return mockProducts;
+  }
+
+  return apiFetch<Product[]>(PRODUCTS_ENDPOINT, { method: "GET" });
+}
+
+export async function fetchProductById(id: string): Promise<Product | undefined> {
+  if (usingMocks()) {
+    return mockProducts.find((p) => p.id === id);
+  }
+
+  return apiFetch<Product>(`${PRODUCTS_ENDPOINT}/${id}`, { method: "GET" });
 }
