@@ -44,6 +44,8 @@ Copy `.env.example` to `.env` and adjust as needed:
 2. Set `VITE_API_BASE_URL` to the backend base URL and `VITE_USE_MOCKS=false`.
 3. Deploy the React app or continue iterating locally. The services in `src/services/` centralize API calls so you can customise
    headers, authentication, or data transformation in one place.
+4. If you're integrating with Supabase, follow the guidance in [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) to provision the
+   project, lock down database access, and map secrets into your hosting platform.
 
 ## Testing
 

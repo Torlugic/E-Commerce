@@ -14,6 +14,31 @@ export default function Home() {
   const { addItem } = useCart();
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    fetchProducts({ signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setProducts(result);
+        }
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if ((err as { name?: string })?.name === "AbortError") return;
+        console.error("Failed to load products", err);
+        if (!controller.signal.aborted) {
+          setError("We couldn't load featured products. Please try again later.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
     let mounted = true;
     setLoading(true);
     fetchProducts()

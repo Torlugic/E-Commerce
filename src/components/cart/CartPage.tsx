@@ -18,6 +18,30 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setCatalogLoading(true);
+    setError(null);
+    fetchProducts({ signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setProducts(result);
+        }
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if ((err as { name?: string })?.name === "AbortError") return;
+        console.error("Failed to load products", err);
+        if (!controller.signal.aborted) {
+          setError("Unable to load products right now");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setCatalogLoading(false);
+        }
+      });
+    return () => {
+      controller.abort();
     let mounted = true;
     setCatalogLoading(true);
     fetchProducts()
