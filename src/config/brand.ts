@@ -35,6 +35,7 @@ export type Brand = {
   marketing?: {
     heroTagline?: string;
     heroSub?: string;
+    heroImage?: string;
     featuredCategoriesTitle?: string;
     featuredCategoriesSubtitle?: string;
     featuredCategories?: { name: string; href: string }[];
@@ -48,8 +49,8 @@ export type Brand = {
 export const brand: Brand = {
   siteName: "E-Commerce",
   logo: {
-    light: "/logo-light.svg",
-    dark: "/logo-dark.svg",
+    light: "https://i.imgur.com/BgoFur0.png",
+    dark: "https://i.imgur.com/BgoFur0.png",
     alt: "E-Commerce",
   },
   company: {
@@ -82,7 +83,8 @@ export const brand: Brand = {
   marketing: {
     heroTagline: "Find the right style for your site.",
     heroSub: "Whiteglove E-Commerce.",
-    
+    heroImage: "https://images.unsplash.com/photo-1517940310602-4d2b220d9b6a?q=80&w=1600&auto=format&fit=crop",
+
     featuredCategoriesTitle: "Featured Categories",
     featuredCategoriesSubtitle: "Title 1, Title 2, Title 3, and more.",
     featuredCategories: [

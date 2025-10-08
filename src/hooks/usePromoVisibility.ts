@@ -64,7 +64,9 @@ export function usePromoVisibility(
         expiresAt: ttlMs ? Date.now() + ttlMs : undefined,
       };
       localStorage.setItem(storageKey, JSON.stringify(rec));
-    } catch {}
+    } catch (error) {
+      console.warn("Failed to persist promo dismissal", error);
+    }
   }, [storageKey, currentHash, ttlMs]);
 
   const reset = useCallback(() => {
@@ -72,7 +74,9 @@ export function usePromoVisibility(
     try {
       const rec: Stored = { visible: true, hash: currentHash };
       localStorage.setItem(storageKey, JSON.stringify(rec));
-    } catch {}
+    } catch (error) {
+      console.warn("Failed to reset promo dismissal", error);
+    }
   }, [storageKey, currentHash]);
 
   return { visible, dismiss, reset };

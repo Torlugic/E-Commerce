@@ -1,34 +1,73 @@
-import React from "react";
-import { mockProducts } from "../../mocks/catalog";
-import type { Product } from "../../models/types";
+import type { Product, ProductVariant } from "../../models/types";
 
-export default function ProductList() {
+type Props = {
+  products: Product[];
+  onAddToCart?: (product: Product, variant: ProductVariant) => void;
+};
+
+export default function ProductList({ products, onAddToCart }: Props) {
+  if (!products.length) {
+    return (
+      <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] p-[var(--space-xl)] text-center text-[var(--text-muted)]">
+        No products found.
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-[var(--space-lg)] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-[var(--space-lg)]">
-      {mockProducts.map((product) => (
-        <ProductCard key={product.id} product={product} />
+    <div className="grid gap-[var(--space-lg)] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} />
       ))}
     </div>
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+type CardProps = {
+  product: Product;
+  onAddToCart?: (product: Product, variant: ProductVariant) => void;
+};
+
+function ProductCard({ product, onAddToCart }: CardProps) {
   const variant = product.variants[0];
+  if (!variant) return null;
+
+  const handleClick = () => {
+    onAddToCart?.(product, variant);
+  };
+
   return (
-    <div className="bg-[var(--surface)] rounded-[var(--radius-md)] shadow p-[var(--space-md)] flex flex-col">
-      <img src={variant.image ?? product.images[0]} alt={product.title} className="w-full h-48 object-cover rounded-md" />
-      <h3 className="mt-[var(--space-sm)] text-lg font-[var(--font-heading)]">
-        {product.title}
-      </h3>
-      <p className="text-[var(--text-muted)] mt-[var(--space-sm)]">{product.description}</p>
-      <div className="mt-auto flex items-center justify-between">
-        <span className="font-bold">
-          ${(variant.price.amount / 100).toFixed(2)} {variant.price.currency}
-        </span>
-        <button className="btn-primary px-3 py-1 rounded-[var(--radius-sm)]">
-          Add to Cart
-        </button>
+    <article className="bg-[var(--surface)] rounded-[var(--radius-md)] shadow-sm border border-[color-mix(in oklab,var(--border) 80%,transparent)] overflow-hidden flex flex-col">
+      <div className="relative h-52 overflow-hidden">
+        <img
+          src={variant.image ?? product.images[0]}
+          alt={product.title}
+          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          loading="lazy"
+        />
       </div>
-    </div>
+      <div className="flex flex-1 flex-col gap-[var(--space-sm)] p-[var(--space-md)]">
+        <div>
+          <h3 className="text-lg font-[var(--font-heading)] font-semibold">{product.title}</h3>
+          {product.description && (
+            <p className="text-sm text-[var(--text-muted)] mt-[var(--space-xs)]">
+              {product.description}
+            </p>
+          )}
+        </div>
+        <div className="mt-auto flex items-center justify-between">
+          <div className="font-semibold text-base">
+            ${(variant.price.amount / 100).toFixed(2)} {variant.price.currency}
+          </div>
+          <button
+            type="button"
+            onClick={handleClick}
+            className="btn-primary px-3 py-2 text-sm font-medium"
+          >
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }

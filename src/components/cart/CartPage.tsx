@@ -1,52 +1,194 @@
-import React from "react";
-import { mockCart, mockProducts } from "../../mocks/catalog";
-import type { CartItem } from "../../models/types";
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import { useCart } from "../../hooks/useCart";
+import { fetchProducts } from "../../services/catalog";
+import type { Product, ProductVariant } from "../../models/types";
+
+type DetailedCartItem = {
+  product: Product;
+  variant: ProductVariant;
+  quantity: number;
+  lineTotal: number;
+};
 
 export default function CartPage() {
-  const cart = mockCart;
+  const { cart, loading, removeItem, updateItemQuantity, clearCart } = useCart();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const getProduct = (productId: string) =>
-    mockProducts.find((p) => p.id === productId);
+  useEffect(() => {
+    const controller = new AbortController();
+    setCatalogLoading(true);
+    setError(null);
+    fetchProducts({ signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) {
+          setProducts(result);
+        }
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        if ((err as { name?: string })?.name === "AbortError") return;
+        console.error("Failed to load products", err);
+        if (!controller.signal.aborted) {
+          setError("Unable to load products right now");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setCatalogLoading(false);
+        }
+      });
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  const items: DetailedCartItem[] = useMemo(() => {
+    if (!cart) return [];
+    return cart.items
+      .map((item) => {
+        const product = products.find((p) => p.id === item.productId);
+        const variant = product?.variants.find((v) => v.id === item.variantId);
+        if (!product || !variant) return null;
+        return {
+          product,
+          variant,
+          quantity: item.quantity,
+          lineTotal: variant.price.amount * item.quantity,
+        } satisfies DetailedCartItem;
+      })
+      .filter((value): value is DetailedCartItem => Boolean(value));
+  }, [cart, products]);
+
+  const currency = items[0]?.variant.price.currency ?? cart?.subtotal.currency ?? "CAD";
+  const subtotal = cart?.subtotal.amount ?? items.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  const handleQuantityChange = async (productId: string, variantId: string, nextQuantity: number) => {
+    try {
+      await updateItemQuantity(productId, variantId, nextQuantity);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update quantity";
+      toast.error(message);
+    }
+  };
+
+  const handleRemove = async (productId: string, variantId: string) => {
+    try {
+      await removeItem(productId, variantId);
+      toast.success("Item removed from cart");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to remove item";
+      toast.error(message);
+    }
+  };
+
+  const handleClear = async () => {
+    try {
+      await clearCart();
+      toast.success("Cart cleared");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to clear cart";
+      toast.error(message);
+    }
+  };
+
+  const isEmpty = !items.length && !loading && !catalogLoading;
 
   return (
-    <div className="max-w-[var(--container-max)] mx-auto px-[var(--space-lg)] space-y-[var(--space-lg)]">
-      <h2 className="text-2xl font-[var(--font-heading)] font-semibold">Your Shopping Cart</h2>
-      {cart.items.length === 0 ? (
-        <p className="text-[var(--text-muted)]">Your cart is empty.</p>
+    <div className="max-w-[var(--container-max)] mx-auto space-y-[var(--space-lg)]">
+      <div className="flex items-center justify-between flex-wrap gap-[var(--space-md)]">
+        <div>
+          <h2 className="text-2xl font-[var(--font-heading)] font-semibold">Your Shopping Cart</h2>
+          {error && <p className="text-sm text-red-500 mt-[var(--space-xs)]">{error}</p>}
+        </div>
+        {!isEmpty && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)]"
+            disabled={loading}
+          >
+            Clear cart
+          </button>
+        )}
+      </div>
+
+      {loading || catalogLoading ? (
+        <p className="text-[var(--text-muted)]">Loading your items…</p>
+      ) : isEmpty ? (
+        <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] p-[var(--space-xl)] text-center text-[var(--text-muted)]">
+          Your cart is empty. Browse our <a href="/products" className="text-[var(--accent)] underline">products</a> to add items.
+        </div>
       ) : (
         <ul className="divide-y divide-[var(--border)]">
-          {cart.items.map((item: CartItem) => {
-            const prod = getProduct(item.productId);
-            const variant = prod?.variants.find((v) => v.id === item.variantId);
-            if (!prod || !variant) return null;
-            return (
-              <li key={`${item.productId}-${item.variantId}`} className="flex items-center py-[var(--space-md)]">
-                <img src={variant.image ?? prod.images[0]} alt={prod.title} className="w-16 h-16 object-cover rounded-md" />
-                <div className="ml-[var(--space-md)] flex-1">
-                  <h3 className="font-[var(--font-heading)]">{prod.title}</h3>
-                  <p className="text-[var(--text-muted)]">
-                    {variant.attributes ? Object.entries(variant.attributes).map(([k, v]) => `${k}: ${v} `) : null}
+          {items.map(({ product, variant, quantity, lineTotal }) => (
+            <li key={`${product.id}-${variant.id}`} className="flex flex-col gap-[var(--space-sm)] py-[var(--space-md)] sm:flex-row sm:items-center">
+              <div className="flex items-center gap-[var(--space-md)] flex-1">
+                <img
+                  src={variant.image ?? product.images[0]}
+                  alt={product.title}
+                  className="w-20 h-20 object-cover rounded-[var(--radius-md)]"
+                />
+                <div className="space-y-[var(--space-xs)]">
+                  <h3 className="font-[var(--font-heading)] text-lg">{product.title}</h3>
+                  <p className="text-sm text-[var(--text-muted)]">
+                    {Object.entries(variant.attributes ?? {}).map(([key, value]) => `${key}: ${value}`).join(", ") || variant.title}
                   </p>
-                  <p className="mt-[var(--space-sm)]">Qty: {item.quantity}</p>
+                  <div className="flex items-center gap-[var(--space-sm)] text-sm">
+                    <label htmlFor={`qty-${product.id}-${variant.id}`} className="text-[var(--text-muted)]">
+                      Qty
+                    </label>
+                    <input
+                      id={`qty-${product.id}-${variant.id}`}
+                      type="number"
+                      min={1}
+                      value={quantity}
+                      onChange={(e) => {
+                        const parsed = Number(e.target.value);
+                        if (Number.isNaN(parsed)) return;
+                        handleQuantityChange(product.id, variant.id, Math.max(1, parsed));
+                      }}
+                      className="w-20 rounded border border-[var(--border)] bg-transparent px-2 py-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(product.id, variant.id)}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-                <span className="font-bold">
-                  ${(variant.price.amount * item.quantity / 100).toFixed(2)}
-                </span>
-              </li>
-            );
-          })}
+              </div>
+              <div className="text-right text-lg font-semibold">
+                ${(lineTotal / 100).toFixed(2)} {currency}
+              </div>
+            </li>
+          ))}
         </ul>
       )}
 
-      <div className="pt-[var(--space-lg)] border-t border-[var(--border)] flex justify-between text-lg">
-        <span>Subtotal</span>
-        <span className="font-bold">
-          ${(cart.subtotal.amount / 100).toFixed(2)} {cart.subtotal.currency}
-        </span>
-      </div>
-      <div className="mt-[var(--space-md)]">
-        <button className="btn-primary px-5 py-2">Proceed to Checkout</button>
-      </div>
+      {!isEmpty && (
+        <div className="pt-[var(--space-lg)] border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-[var(--space-md)] text-lg">
+          <div>
+            <span className="text-[var(--text-muted)]">Subtotal</span>
+          </div>
+          <div className="font-bold text-2xl">
+            ${(subtotal / 100).toFixed(2)} {currency}
+          </div>
+        </div>
+      )}
+
+      {!isEmpty && (
+        <div className="mt-[var(--space-md)] flex flex-wrap gap-[var(--space-md)]">
+          <button className="btn-primary px-5 py-3 text-base">Proceed to Checkout</button>
+          <a href="/products" className="px-5 py-3 text-base border border-[var(--border)] rounded-[var(--radius-md)] hover:bg-[var(--surface)]">
+            Continue shopping
+          </a>
+        </div>
+      )}
     </div>
   );
 }
