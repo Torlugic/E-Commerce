@@ -36,6 +36,21 @@ export default function ProductsPage() {
       });
     return () => {
       controller.abort();
+    let mounted = true;
+    setLoading(true);
+    fetchProducts()
+      .then((result) => {
+        if (mounted) setProducts(result);
+      })
+      .catch((err) => {
+        console.error("Failed to load products", err);
+        if (mounted) setError("We couldn't load products. Please try again later.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
     };
   }, []);
 

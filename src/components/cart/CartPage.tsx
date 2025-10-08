@@ -42,6 +42,21 @@ export default function CartPage() {
       });
     return () => {
       controller.abort();
+    let mounted = true;
+    setCatalogLoading(true);
+    fetchProducts()
+      .then((result) => {
+        if (mounted) setProducts(result);
+      })
+      .catch((err) => {
+        console.error("Failed to load products", err);
+        if (mounted) setError("Unable to load products right now");
+      })
+      .finally(() => {
+        if (mounted) setCatalogLoading(false);
+      });
+    return () => {
+      mounted = false;
     };
   }, []);
 
