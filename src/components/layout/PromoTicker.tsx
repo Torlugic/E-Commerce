@@ -1,5 +1,3 @@
-import React from "react"
-import { useDismissable } from "../../hooks/useDismissable"
 import { usePromoVisibility } from "../../hooks/usePromoVisibility"
 import { tickerConfig } from "../../config/ticker";
 
