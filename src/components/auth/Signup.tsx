@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { signup } from "../../mocks/auth";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -9,12 +9,13 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signup: register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await signup({ name, email, password });
+      const user = await register({ name, email, password });
       toast.success(`Account created for ${user.email}`);
       navigate("/");
     } catch (err: any) {
