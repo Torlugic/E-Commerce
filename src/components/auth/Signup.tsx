@@ -18,8 +18,9 @@ export default function Signup() {
       const user = await register({ name, email, password });
       toast.success(`Account created for ${user.email}`);
       navigate("/");
-    } catch (err: any) {
-      toast.error(err.message || "Signup failed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Signup failed";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

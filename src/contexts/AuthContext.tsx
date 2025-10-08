@@ -114,8 +114,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthCtx);
-  if (!ctx) throw new Error("useAuth must be used under AuthProvider");
-  return ctx;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
