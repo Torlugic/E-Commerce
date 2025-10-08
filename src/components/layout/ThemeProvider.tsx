@@ -1,24 +1,16 @@
-import { createContext, useContext } from "react";
-import { useTheme, type ThemeMode } from "../../hooks/useTheme";
 import type { PropsWithChildren } from "react";
-
-type Ctx = ReturnType<typeof useTheme>;
-const ThemeCtx = createContext<Ctx | null>(null);
+import { ThemeContext } from "../../contexts/themeContext";
+import { useTheme } from "../../hooks/useTheme";
+import { useThemeContext } from "../../hooks/useThemeContext";
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const value = useTheme();
-  return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
-}
-
-export function useThemeCtx() {
-  const ctx = useContext(ThemeCtx);
-  if (!ctx) throw new Error("useThemeCtx must be used within <ThemeProvider>");
-  return ctx;
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 // Optional: a simple toggle button you can drop anywhere
 export function ThemeToggle() {
-  const { mode, toggle } = useThemeCtx();
+  const { mode, toggle } = useThemeContext();
   return (
     <button
       onClick={toggle}

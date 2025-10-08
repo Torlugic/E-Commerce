@@ -2,9 +2,17 @@ import { useEffect, useState, useCallback } from "react";
 import { applyTheme, lightTheme, darkTheme, type ThemeTokens } from "../config/theme";
 
 export type ThemeMode = "light" | "dark";
+
+export type ThemeContextValue = {
+  mode: ThemeMode;
+  toggle: () => void;
+  set: (mode: ThemeMode) => void;
+  theme: ThemeTokens;
+};
+
 const STORAGE_KEY = "theme-mode";
 
-export function useTheme() {
+export function useTheme(): ThemeContextValue {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
     if (saved) return saved;
