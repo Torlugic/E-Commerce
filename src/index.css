@@ -1,0 +1,105 @@
+/* 1) Fonts first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@600;700&display=swap');
+
+/* 2) Tailwind */
+@import "tailwindcss";
+
+/* 3) Theme-aware base (populated by ThemeProvider via CSS variables) */
+:root {
+  color-scheme: light dark;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: var(--line-height-base);
+  font-weight: var(--font-weight-base);
+
+  /* Nice-to-haves */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode hint (we also flip actual variables in JS) */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Helpful variable-backed utilities */
+.bg-app     { background-color: var(--bg); }
+.bg-surface { background-color: var(--surface); }
+.text-app   { color: var(--text); }
+.text-muted { color: var(--text-muted); }
+.border-app { border-color: var(--border); }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-radius: var(--radius-md);
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+/* Reset some of the Vite template defaults that clash with our layout */
+html, body, #root {
+  height: var(--full-height);
+}
+body {
+  margin: var(--page-margin);
+}
+
+header {
+  height: var(--header-height);
+}
+
+footer {
+  height: var(--footer-height);
+}
+
+.container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+@media (min-width: var(--bp-desktop)) {
+  .sidebar {
+    width: var(--sidebar-width);
+  }
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--line-height-base);
+}
+
+/* Promo ticker animation (pauses on hover, disabled for reduced motion) */
+.ticker {
+  height: var(--ticker-height, 32px);
+  background: color-mix(in oklab, var(--surface) 90%, transparent);
+  /* Remove extra border; we'll add a subtle divider shadow instead */
+  border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+}
+.ticker__track {
+  animation-name: ticker-scroll;
+  animation-duration: var(--ticker-speed, 28s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+
+  /* Edge fade so text doesn't slam into the edges */
+  mask-image: linear-gradient(to right, transparent 0, black 6%, black 94%,
+transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 6%, black 94%,
+transparent 100%);}
+.ticker:hover .ticker__track { animation-play-state: paused; }
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); } /* because we render 2 identical rows */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track { animation: none !important; }
+}
+
