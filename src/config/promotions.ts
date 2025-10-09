@@ -11,7 +11,7 @@ export type Promo = {
 
 export function getActivePromos(now = new Date()): Promo[] {
   const promos: Promo[] = [
-    { id: "fall20", text: "🔥 Fall Sale: 20% off", href: "/products?cat=title=1&promo=fall10", startAt: "2025-09-15T00:00:00Z", endAt: "2025-11-30T23:59:59Z", priority: 100, channels: ["ticker","homepage"] },
+    { id: "fall20", text: "🔥 Fall Sale: 20% off", href: "/products?cat=title-1&promo=fall20", startAt: "2025-09-15T00:00:00Z", endAt: "2025-11-30T23:59:59Z", priority: 100, channels: ["ticker","homepage"] },
     { id: "b3g1",   text: "⭐ Buy 3, Get 1 Free on select items", href: "/products?cat=title-2&promo=b3g1", startAt: "2025-10-01T00:00:00Z", endAt: "2025-10-31T23:59:59Z", priority: 90, channels: ["ticker"] },
     { id: "ship499",text: "🚚 Free shipping over $99", href: "/shipping", priority: 50, channels: ["ticker","homepage"] },
     // Example BNPL disclosure placeholder:
