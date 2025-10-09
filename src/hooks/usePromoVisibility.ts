@@ -27,8 +27,13 @@ export function usePromoVisibility(
 
   // read from storage once
   useEffect(() => {
+    if (typeof window === "undefined" || !("localStorage" in window)) {
+      setVisible(true);
+      return;
+    }
+
     try {
-      const raw = localStorage.getItem(storageKey);
+      const raw = window.localStorage.getItem(storageKey);
       if (!raw) {
         setVisible(true);
         return;
@@ -50,20 +55,25 @@ export function usePromoVisibility(
 
       // Otherwise honor stored visibility
       setVisible(parsed.visible);
-    } catch {
+    } catch (error) {
+      console.warn("Failed to restore promo dismissal state", error);
       setVisible(true);
     }
   }, [storageKey, currentHash]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
+    if (typeof window === "undefined" || !("localStorage" in window)) {
+      return;
+    }
+
     try {
       const rec: Stored = {
         visible: false,
         hash: currentHash,
         expiresAt: ttlMs ? Date.now() + ttlMs : undefined,
       };
-      localStorage.setItem(storageKey, JSON.stringify(rec));
+      window.localStorage.setItem(storageKey, JSON.stringify(rec));
     } catch (error) {
       console.warn("Failed to persist promo dismissal", error);
     }
@@ -71,9 +81,13 @@ export function usePromoVisibility(
 
   const reset = useCallback(() => {
     setVisible(true);
+    if (typeof window === "undefined" || !("localStorage" in window)) {
+      return;
+    }
+
     try {
       const rec: Stored = { visible: true, hash: currentHash };
-      localStorage.setItem(storageKey, JSON.stringify(rec));
+      window.localStorage.setItem(storageKey, JSON.stringify(rec));
     } catch (error) {
       console.warn("Failed to reset promo dismissal", error);
     }
