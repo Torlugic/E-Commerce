@@ -1,73 +1,56 @@
-# React + TypeScript + Vite
+# E-Commerce storefront
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + TypeScript storefront scaffolded with Vite and Tailwind CSS. It includes a themed layout, authentication flows wired
+into context, a product catalogue, cart management, and informational pages so you can focus on integrating your own backend.
 
-Currently, two official plugins are available:
+## Getting started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app runs on [http://localhost:5173](http://localhost:5173) by default.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Copy `.env.example` to `.env` and adjust as needed:
+
+- `VITE_API_BASE_URL` – set this to your backend origin (e.g. `https://api.example.com`). When omitted, the front-end falls back to
+  the built-in mock data layer.
+- `VITE_USE_MOCKS` – defaults to `true`. Set to `false` to force live API calls when `VITE_API_BASE_URL` is configured.
+
+## Available scripts
+
+- `npm run dev` – start the Vite dev server.
+- `npm run build` – type-check and build for production.
+- `npm run preview` – preview the production build locally.
+
+## Features
+
+- **Design system tokens** for colors, typography, spacing, and layout applied through a `ThemeProvider`.
+- **Auth context** with login, signup, and profile flows. State is persisted in `localStorage` and ready to swap to your own API.
+- **Cart context** backed by a mock/localStorage service with add, update, remove, and clear actions.
+- **Product catalogue** pages powered by a catalog service that can point to your backend.
+- **Marketing pages** including shipping, returns, privacy, terms, and contact to match the navigation links.
+- **Promo ticker** with dismiss persistence and theme-aware styling.
+
+## Connecting a backend
+
+1. Implement REST endpoints that match the following routes (or update the services accordingly):
+   - `POST /auth/login`, `POST /auth/signup`, `GET /auth/me`, `POST /auth/logout`
+   - `GET /products`, `GET /products/:id`
+   - `GET /cart`, `POST /cart`, `PATCH /cart/:productId/:variantId`, `DELETE /cart/:productId/:variantId`, `POST /cart/clear`
+2. Set `VITE_API_BASE_URL` to the backend base URL and `VITE_USE_MOCKS=false`.
+3. Deploy the React app or continue iterating locally. The services in `src/services/` centralize API calls so you can customise
+   headers, authentication, or data transformation in one place.
+4. If you're integrating with Supabase, follow the guidance in [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) to provision the
+   project, lock down database access, and map secrets into your hosting platform.
+
+## Testing
+
+Run the production build (includes type-checking) before committing:
+
+```bash
+npm run build
 ```

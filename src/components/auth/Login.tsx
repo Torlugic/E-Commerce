@@ -1,24 +1,25 @@
-import React, { useState } from "react";
-import { login } from "../../mocks/auth";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login: authenticate } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await login({ email, password });
+      const user = await authenticate({ email, password });
       toast.success(`Welcome, ${user.name ?? user.email}`);
-      // TODO: set user in context/auth state
       navigate("/");
-    } catch (err: any) {
-      toast.error(err.message || "Login failed");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login failed";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
