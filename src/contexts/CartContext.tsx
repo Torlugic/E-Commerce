@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Cart } from "../models/types";
-import { CartContext } from "./cartContext";
 import type { CartContextValue } from "./cartTypes";
+import { CartContext } from "./cartContextBase";
 import * as cartService from "../services/cart";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { AuthCredentials, UserProfile } from "../models/types";
-import { AuthContext } from "./authContext";
 import type { AuthContextValue } from "./authTypes";
+import { AuthContext } from "./authContextBase";
 import * as authService from "../services/auth";
 
 const STORAGE_KEY = "auth:user";
