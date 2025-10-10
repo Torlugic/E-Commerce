@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Cart } from "../models/types";
 import type { CartContextValue } from "./cartTypes";
-import { CartContext } from "./cartContextBase";
 import * as cartService from "../services/cart";
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+// eslint-disable-next-line react-refresh/only-export-components
+export const CartContext = createContext<CartContextValue | null>(null);
+
+export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
 

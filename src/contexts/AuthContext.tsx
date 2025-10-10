@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
 import type { AuthCredentials, UserProfile } from "../models/types";
 import type { AuthContextValue } from "./authTypes";
-import { AuthContext } from "./authContextBase";
 import * as authService from "../services/auth";
 
 const STORAGE_KEY = "auth:user";
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -31,9 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const stored = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
         if (stored) {
-          const parsed: UserProfile = JSON.parse(stored);
-          if (mounted) setUser(parsed);
-          return;
+          try {
+            const parsed: UserProfile = JSON.parse(stored);
+            if (mounted) {
+              setUser(parsed);
+              setInitialized(true);
+            }
+            return;
+          } catch (error) {
+            console.warn("Stored auth state is corrupt, clearing it", error);
+            if (typeof window !== "undefined") {
+              window.localStorage.removeItem(STORAGE_KEY);
+            }
+          }
         }
 
         const profile = await authService.getProfile();
