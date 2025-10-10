@@ -47,6 +47,18 @@ body {
   margin: var(--page-margin);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 header {
   height: var(--header-height);
 }
@@ -76,14 +88,26 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Promo ticker animation (pauses on hover, disabled for reduced motion) */
 .ticker {
+  --ticker-entry-duration: 1.8s;
+  --ticker-speed: 28s;
   height: var(--ticker-height, 32px);
   background: color-mix(in oklab, var(--surface) 90%, transparent);
   /* Remove extra border; we'll add a subtle divider shadow instead */
   border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
 }
+
+.ticker__inner {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  will-change: transform;
+  animation: ticker-enter var(--ticker-entry-duration) ease-out 1;
+  animation-fill-mode: forwards;
+}
+
 .ticker__track {
   animation-name: ticker-scroll;
-  animation-duration: var(--ticker-speed, 28s);
+  animation-duration: var(--ticker-speed);
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 
@@ -94,12 +118,18 @@ transparent 100%);
 transparent 100%);}
 .ticker:hover .ticker__track { animation-play-state: paused; }
 
+@keyframes ticker-enter {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); } /* because we render 2 identical rows */
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ticker__inner,
   .ticker__track { animation: none !important; }
 }
 
