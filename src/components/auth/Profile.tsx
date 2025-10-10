@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useThemeContext } from "../../hooks/useThemeContext";
 
@@ -18,9 +19,9 @@ export default function Profile() {
         <p className="text-[var(--text-muted)]">
           You need to sign in to view your profile.
         </p>
-        <a href="/login" className="btn-primary inline-flex justify-center px-4 py-2">
+        <Link to="/login" className="btn-primary inline-flex justify-center px-4 py-2">
           Go to login
-        </a>
+        </Link>
       </div>
     );
   }
