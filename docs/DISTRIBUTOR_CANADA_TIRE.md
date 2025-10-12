@@ -6,7 +6,8 @@ Customer API with hardened security defaults. Follow these steps before deployin
 ## 1. Required secrets
 
 Store the following secrets with `supabase secrets set` (or your hosting provider’s secret manager). Never commit them to the
-repo or expose them to the frontend:
+repo or expose them to the frontend. For local testing, copy `supabase/.env.example` to `supabase/.env.local`, fill in your
+credentials, and pass the file to `supabase functions serve`.
 
 | Secret | Description |
 | --- | --- |
