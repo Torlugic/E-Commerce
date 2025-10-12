@@ -20,6 +20,11 @@ import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import ContactPage from "./pages/ContactPage";
 
+const rawBase = import.meta.env.BASE_URL ?? '/'
+const basename = rawBase === './'
+  ? '/'
+  : rawBase.replace(/\/+$/, '') || '/'
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -39,7 +44,7 @@ const router = createBrowserRouter([
       { path: '*', element: <NotFound /> }, // catch-all 404
     ],
   },
-])
+], { basename })
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

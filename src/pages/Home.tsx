@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import ParallaxSection from "../components/ui/ParallaxSection";
 import ProductList from "../components/product/ProductList";
@@ -55,6 +56,8 @@ export default function Home() {
   };
 
   const heroImage = brand.marketing?.heroImage ?? "https://images.unsplash.com/photo-1517940310602-4d2b220d9b6a?q=80&w=1600&auto=format&fit=crop";
+  const contactHref = brand.links.contact;
+  const contactIsInternal = contactHref?.startsWith("/");
 
   return (
     <div className="space-y-[var(--space-3xl)]">
@@ -70,15 +73,24 @@ export default function Home() {
             {brand.marketing?.heroSub ?? "White-glove e-commerce for modern retailers."}
           </p>
           <div className="flex flex-wrap justify-center gap-[var(--space-md)]">
-            <a href="/products" className="btn-primary px-6 py-3 text-base font-semibold">
+            <Link to="/products" className="btn-primary px-6 py-3 text-base font-semibold">
               Shop Now
-            </a>
-            <a
-              href={brand.links.contact}
-              className="px-6 py-3 text-base border border-[var(--border)] rounded-[var(--radius-md)] hover:bg-[var(--surface)]"
-            >
-              Talk to us
-            </a>
+            </Link>
+            {contactHref && contactIsInternal ? (
+              <Link
+                to={contactHref}
+                className="px-6 py-3 text-base border border-[var(--border)] rounded-[var(--radius-md)] hover:bg-[var(--surface)]"
+              >
+                Talk to us
+              </Link>
+            ) : contactHref ? (
+              <a
+                href={contactHref}
+                className="px-6 py-3 text-base border border-[var(--border)] rounded-[var(--radius-md)] hover:bg-[var(--surface)]"
+              >
+                Talk to us
+              </a>
+            ) : null}
           </div>
         </div>
       </ParallaxSection>
@@ -93,18 +105,35 @@ export default function Home() {
           </p>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[var(--space-lg)]">
-          {(brand.marketing?.featuredCategories ?? []).map((category) => (
-            <a
-              key={category.name}
-              href={category.href}
-              className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[var(--space-lg)] shadow-sm hover:border-[var(--accent)] transition"
-            >
-              <h3 className="text-xl font-semibold mb-[var(--space-sm)] group-hover:text-[var(--accent)]">
-                {category.name}
-              </h3>
-              <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--accent)]">Shop now →</span>
-            </a>
-          ))}
+          {(brand.marketing?.featuredCategories ?? []).map((category) => {
+            const isInternal = category.href.startsWith("/");
+            const content = (
+              <>
+                <h3 className="text-xl font-semibold mb-[var(--space-sm)] group-hover:text-[var(--accent)]">
+                  {category.name}
+                </h3>
+                <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--accent)]">Shop now →</span>
+              </>
+            );
+
+            return isInternal ? (
+              <Link
+                key={category.name}
+                to={category.href}
+                className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[var(--space-lg)] shadow-sm hover:border-[var(--accent)] transition"
+              >
+                {content}
+              </Link>
+            ) : (
+              <a
+                key={category.name}
+                href={category.href}
+                className="group rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-[var(--space-lg)] shadow-sm hover:border-[var(--accent)] transition"
+              >
+                {content}
+              </a>
+            );
+          })}
         </div>
       </section>
 
@@ -114,7 +143,7 @@ export default function Home() {
             <h2 className="text-3xl font-[var(--font-heading)] font-semibold">Latest arrivals</h2>
             <p className="text-[var(--text-muted)]">Handpicked gear to elevate your build.</p>
           </div>
-          <a href="/products" className="text-[var(--accent)] font-medium">View all products</a>
+          <Link to="/products" className="text-[var(--accent)] font-medium">View all products</Link>
         </header>
         {error && <p className="text-sm text-red-500">{error}</p>}
         {loading ? (

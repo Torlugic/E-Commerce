@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useCart } from "../../hooks/useCart";
 import { fetchProducts } from "../../services/catalog";
@@ -123,7 +124,7 @@ export default function CartPage() {
         <p className="text-[var(--text-muted)]">Loading your items…</p>
       ) : isEmpty ? (
         <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] p-[var(--space-xl)] text-center text-[var(--text-muted)]">
-          Your cart is empty. Browse our <a href="/products" className="text-[var(--accent)] underline">products</a> to add items.
+          Your cart is empty. Browse our <Link to="/products" className="text-[var(--accent)] underline">products</Link> to add items.
         </div>
       ) : (
         <ul className="divide-y divide-[var(--border)]">
@@ -188,9 +189,9 @@ export default function CartPage() {
       {!isEmpty && (
         <div className="mt-[var(--space-md)] flex flex-wrap gap-[var(--space-md)]">
           <button className="btn-primary px-5 py-3 text-base">Proceed to Checkout</button>
-          <a href="/products" className="px-5 py-3 text-base border border-[var(--border)] rounded-[var(--radius-md)] hover:bg-[var(--surface)]">
+          <Link to="/products" className="px-5 py-3 text-base border border-[var(--border)] rounded-[var(--radius-md)] hover:bg-[var(--surface)]">
             Continue shopping
-          </a>
+          </Link>
         </div>
       )}
     </div>
