@@ -78,7 +78,37 @@ residency, strict access control, and operational practices so you can expose on
 - Turn on daily backups (or PITR for larger datasets) and practise restoration before shipping major schema changes.
 - Run the Supabase Security Advisor routinely to catch tables missing RLS or policies that are too permissive.
 
-## 8. Next steps for this project
+## 8. Canada Tire API credentials
+
+The distributor Edge Function requires Canada Tire API credentials to be configured as Supabase project secrets. Set these in your Supabase Dashboard under **Project Settings → Edge Functions → Secrets**:
+
+**Required secrets:**
+- `CANADA_TIRE_BASE_URL` - The base URL for Canada Tire's NetSuite API (e.g., `https://8031691-sb1.restlets.api.netsuite.com`)
+- `CANADA_TIRE_CONSUMER_KEY` - OAuth consumer key from Canada Tire
+- `CANADA_TIRE_CONSUMER_SECRET` - OAuth consumer secret from Canada Tire
+- `CANADA_TIRE_TOKEN_ID` - OAuth token ID from Canada Tire
+- `CANADA_TIRE_TOKEN_SECRET` - OAuth token secret from Canada Tire
+- `CANADA_TIRE_CUSTOMER_ID` - Your Canada Tire customer ID
+- `CANADA_TIRE_CUSTOMER_TOKEN` - Your Canada Tire customer token
+
+**Optional secrets:**
+- `CANADA_TIRE_REALM` - NetSuite realm (defaults to `8031691_SB1` if not set)
+- `CANADA_TIRE_TIMEOUT_MS` - API request timeout in milliseconds (defaults to 30000)
+
+**Setting secrets via CLI:**
+```bash
+supabase secrets set CANADA_TIRE_BASE_URL=https://8031691-sb1.restlets.api.netsuite.com
+supabase secrets set CANADA_TIRE_CONSUMER_KEY=your_key_here
+supabase secrets set CANADA_TIRE_CONSUMER_SECRET=your_secret_here
+supabase secrets set CANADA_TIRE_TOKEN_ID=your_token_id_here
+supabase secrets set CANADA_TIRE_TOKEN_SECRET=your_token_secret_here
+supabase secrets set CANADA_TIRE_CUSTOMER_ID=your_customer_id_here
+supabase secrets set CANADA_TIRE_CUSTOMER_TOKEN=your_customer_token_here
+```
+
+**Note:** After setting secrets, the Edge Functions will automatically have access to them via `Deno.env.get()`. No function redeployment is needed.
+
+## 9. Next steps for this project
 - Decide whether the React app should call Supabase directly (Data API + anon key) or exclusively via Edge Functions.
 - Create the necessary schemas/tables following the separation above and write RLS policies before importing production data.
 - Populate environment variables locally and in deployment (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, backend secrets) and set

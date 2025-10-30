@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import ProductList from "../components/product/ProductList";
-import { fetchProducts } from "../services/catalog";
+import ProductFilters from "../components/product/ProductFilters";
+import { fetchProducts, type ProductFilters as Filters } from "../services/catalog";
 import type { Product, ProductVariant } from "../models/types";
 import { useCart } from "../hooks/useCart";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filters, setFilters] = useState<Filters>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addItem } = useCart();
@@ -15,7 +17,7 @@ export default function ProductsPage() {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetchProducts({ signal: controller.signal })
+    fetchProducts({ signal: controller.signal, filters })
       .then((result) => {
         if (!controller.signal.aborted) {
           setProducts(result);
@@ -37,7 +39,7 @@ export default function ProductsPage() {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [filters]);
 
   const handleAddToCart = async (product: Product, variant: ProductVariant) => {
     try {
@@ -49,18 +51,60 @@ export default function ProductsPage() {
     }
   };
 
+  const handleClearFilters = () => {
+    setFilters({});
+  };
+
   return (
     <div className="max-w-[var(--container-max)] mx-auto space-y-[var(--space-lg)]">
       <header className="space-y-[var(--space-xs)]">
         <h1 className="text-3xl font-[var(--font-heading)] font-semibold">Products</h1>
-        <p className="text-[var(--text-muted)]">Browse the complete catalogue.</p>
+        <p className="text-[var(--text-muted)]">Browse our tire catalogue.</p>
       </header>
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      {loading ? (
-        <p className="text-[var(--text-muted)]">Loading products…</p>
-      ) : (
-        <ProductList products={products} onAddToCart={handleAddToCart} />
-      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-[var(--space-lg)]">
+        <aside className="lg:col-span-1">
+          <ProductFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClearFilters={handleClearFilters}
+          />
+        </aside>
+
+        <main className="lg:col-span-3">
+          {error && (
+            <div className="mb-[var(--space-md)] p-[var(--space-md)] bg-red-50 border border-red-200 rounded-[var(--radius-md)] text-red-700">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-[var(--text-muted)]">Loading products…</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-[var(--text-muted)] mb-2">No products found matching your filters.</p>
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="text-sm text-[var(--link)] hover:underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-[var(--space-md)] flex items-center justify-between">
+                <p className="text-sm text-[var(--text-muted)]">
+                  Showing {products.length} {products.length === 1 ? 'product' : 'products'}
+                </p>
+              </div>
+              <ProductList products={products} onAddToCart={handleAddToCart} />
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

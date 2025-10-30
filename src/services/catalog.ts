@@ -1,91 +1,221 @@
-import type { Product } from "../models/types";
-import { mockProducts } from "../mocks/catalog";
-import { apiFetch, usingMocks } from "./http";
-import {
-  parseProduct,
-  parseProductList,
-  type ProductValidationIssue,
-} from "../models/productSchema";
+import type { Product, ProductVariant } from "../models/types";
+import { supabase } from "../lib/supabase";
 
-const PRODUCTS_ENDPOINT = "/products";
+export interface ProductFilters {
+  brand?: string;
+  seasonType?: 'winter' | 'summer' | 'all-season';
+  tireWidth?: number;
+  aspectRatio?: number;
+  rimSize?: number;
+  tireSize?: string;
+  searchTerm?: string;
+}
 
 type FetchProductsOptions = {
   signal?: AbortSignal;
+  filters?: ProductFilters;
+  limit?: number;
+  offset?: number;
 };
 
 type FetchProductOptions = {
   signal?: AbortSignal;
 };
 
-function logValidationIssues(
-  label: string,
-  issues: ProductValidationIssue[],
-  identifier?: string
-) {
-  if (!issues.length) {
-    return;
-  }
-  const target = identifier ? `${label} (${identifier})` : label;
-  const warnings = issues.filter((issue) => issue.level === "warning");
-  const errors = issues.filter((issue) => issue.level === "error");
+function transformDbProductToProduct(dbProduct: {
+  id: string;
+  part_number: string;
+  title: string;
+  description: string;
+  brand: string;
+  tire_size: string | null;
+  season_type: string;
+  target_sell_price: number;
+  currency: string;
+  image_url: string | null;
+  stock_quantity: number;
+}): Product {
+  const defaultImage = 'https://images.pexels.com/photos/13861/IMG_3496bfree.jpg?auto=compress&cs=tinysrgb&w=800';
 
-  if (errors.length) {
-    console.error(`${target} validation errors`, errors.map(formatIssue));
-  }
-  if (warnings.length) {
-    console.warn(`${target} validation warnings`, warnings.map(formatIssue));
-  }
-}
+  const variant: ProductVariant = {
+    id: `${dbProduct.id}-default`,
+    sku: dbProduct.part_number,
+    title: 'Standard',
+    price: {
+      amount: dbProduct.target_sell_price,
+      currency: dbProduct.currency,
+    },
+    image: dbProduct.image_url || defaultImage,
+    stock: dbProduct.stock_quantity,
+    attributes: {
+      size: dbProduct.tire_size || '',
+      season: dbProduct.season_type,
+    },
+  };
 
-function formatIssue(issue: ProductValidationIssue) {
+  const slug = dbProduct.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
   return {
-    path: issue.path.length ? issue.path.join(".") : "(root)",
-    message: issue.message,
+    id: dbProduct.id,
+    title: dbProduct.title,
+    description: dbProduct.description,
+    images: [dbProduct.image_url || defaultImage],
+    variants: [variant],
+    slug,
+    tags: [dbProduct.brand, dbProduct.season_type],
+    categories: [dbProduct.season_type],
   };
 }
 
 export async function fetchProducts(options: FetchProductsOptions = {}): Promise<Product[]> {
-  if (usingMocks()) {
-    const result = parseProductList(mockProducts);
-    logValidationIssues("Mock product list", result.issues);
-    return result.products;
+  try {
+    let query = supabase
+      .from('products')
+      .select('id, part_number, title, description, brand, tire_size, season_type, target_sell_price, currency, image_url, stock_quantity, tire_width, aspect_ratio, rim_size')
+      .eq('is_active', true)
+      .order('title', { ascending: true });
+
+    if (options.filters) {
+      const { brand, seasonType, tireWidth, aspectRatio, rimSize, tireSize, searchTerm } = options.filters;
+
+      if (brand) {
+        query = query.eq('brand', brand);
+      }
+
+      if (seasonType) {
+        query = query.eq('season_type', seasonType);
+      }
+
+      if (tireWidth) {
+        query = query.eq('tire_width', tireWidth);
+      }
+
+      if (aspectRatio) {
+        query = query.eq('aspect_ratio', aspectRatio);
+      }
+
+      if (rimSize) {
+        query = query.eq('rim_size', rimSize);
+      }
+
+      if (tireSize) {
+        query = query.eq('tire_size', tireSize);
+      }
+
+      if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%,part_number.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`);
+      }
+    }
+
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching products:', error);
+      throw new Error(`Failed to fetch products: ${error.message}`);
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    return data.map(transformDbProductToProduct);
+  } catch (error) {
+    console.error('Error in fetchProducts:', error);
+    throw error;
   }
-
-  const raw = await apiFetch<unknown>(PRODUCTS_ENDPOINT, {
-    method: "GET",
-    signal: options.signal,
-  });
-
-  const result = parseProductList(raw);
-  logValidationIssues("Product list", result.issues);
-  return result.products;
 }
 
 export async function fetchProductById(
   id: string,
-  options: FetchProductOptions = {}
+  _options: FetchProductOptions = {}
 ): Promise<Product | undefined> {
   const trimmedId = id.trim();
   if (!trimmedId) {
     return undefined;
   }
 
-  if (usingMocks()) {
-    const match = mockProducts.find((product) => product.id === trimmedId || product.slug === trimmedId);
-    if (!match) {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, part_number, title, description, brand, tire_size, season_type, target_sell_price, currency, image_url, stock_quantity')
+      .eq('id', trimmedId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching product:', error);
       return undefined;
     }
-    const parsed = parseProduct(match);
-    logValidationIssues("Mock product", parsed.issues, trimmedId);
-    return parsed.product ?? undefined;
+
+    if (!data) {
+      return undefined;
+    }
+
+    return transformDbProductToProduct(data);
+  } catch (error) {
+    console.error('Error in fetchProductById:', error);
+    return undefined;
   }
+}
 
-  const raw = await apiFetch<unknown>(`${PRODUCTS_ENDPOINT}/${encodeURIComponent(trimmedId)}`, {
-    method: "GET",
-    signal: options.signal,
-  });
+export async function fetchBrands(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('brand')
+      .eq('is_active', true)
+      .order('brand', { ascending: true });
 
-  const parsed = parseProduct(raw);
-  logValidationIssues("Product", parsed.issues, trimmedId);
-  return parsed.product ?? undefined;
+    if (error) {
+      console.error('Error fetching brands:', error);
+      return [];
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    const uniqueBrands = [...new Set(data.map((p) => p.brand))];
+    return uniqueBrands;
+  } catch (error) {
+    console.error('Error in fetchBrands:', error);
+    return [];
+  }
+}
+
+export async function fetchTireSizes(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('tire_size')
+      .eq('is_active', true)
+      .not('tire_size', 'is', null)
+      .order('tire_size', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching tire sizes:', error);
+      return [];
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    const uniqueSizes = [...new Set(data.map((p) => p.tire_size).filter((s): s is string => s !== null))];
+    return uniqueSizes;
+  } catch (error) {
+    console.error('Error in fetchTireSizes:', error);
+    return [];
+  }
 }
