@@ -52,7 +52,9 @@ export async function buildOAuthHeader(
   realm: string,
   requestUrl: URL,
 ): Promise<string> {
-  const oauthNonce = crypto.randomUUID().replace(/-/g, "");
+  const oauthNonce = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
   const oauthTimestamp = Math.floor(Date.now() / 1000).toString();
 
   const baseEntries: Array<[string, string]> = [
