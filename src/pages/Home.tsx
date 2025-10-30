@@ -148,6 +148,11 @@ export default function Home() {
         {error && <p className="text-sm text-red-500">{error}</p>}
         {loading ? (
           <p className="text-[var(--text-muted)]">Loading featured products…</p>
+        ) : featuredProducts.length === 0 ? (
+          <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--border)] p-[var(--space-xl)] text-center">
+            <p className="text-[var(--text-muted)] mb-2">No products available yet.</p>
+            <p className="text-sm text-[var(--text-muted)]">Products will appear here once the catalog is synced.</p>
+          </div>
         ) : (
           <ProductList products={featuredProducts} onAddToCart={handleAddToCart} />
         )}
