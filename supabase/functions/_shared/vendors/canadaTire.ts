@@ -1,3 +1,4 @@
+//supabase>functions>_shared>vendors>canadaTire.ts
 import { AdapterError, assert } from "../errors.ts";
 import { buildOAuthHeader, type OAuthCredentials } from "../oauth.ts";
 import {
