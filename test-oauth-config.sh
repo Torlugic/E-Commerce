@@ -1,0 +1,122 @@
+#!/bin/bash
+
+echo "========================================"
+echo "Canada Tire OAuth Configuration Check"
+echo "========================================"
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Required variables
+REQUIRED_VARS=(
+    "CANADA_TIRE_BASE_URL"
+    "CANADA_TIRE_REALM"
+    "CANADA_TIRE_CONSUMER_KEY"
+    "CANADA_TIRE_CONSUMER_SECRET"
+    "CANADA_TIRE_TOKEN_ID"
+    "CANADA_TIRE_TOKEN_SECRET"
+    "CANADA_TIRE_CUSTOMER_ID"
+    "CANADA_TIRE_CUSTOMER_TOKEN"
+)
+
+echo "Required Supabase Secrets:"
+echo "-------------------------"
+for var in "${REQUIRED_VARS[@]}"; do
+    echo "  - $var"
+done
+echo ""
+
+echo "CRITICAL CHECKS:"
+echo "----------------"
+echo ""
+
+echo "1. Realm Configuration:"
+echo "   - For SANDBOX: Realm must be '8031691_SB1'"
+echo "   - For PRODUCTION: Realm must be '8031691'"
+echo "   - Base URL must match realm environment"
+echo ""
+
+echo "2. Credential Pairing:"
+echo "   - Consumer Key + Consumer Secret must be a matched pair"
+echo "   - Token ID + Token Secret must be a matched pair"
+echo "   - All four OAuth credentials must be from the SAME environment"
+echo ""
+
+echo "3. Base URL Format:"
+echo "   - SANDBOX: https://8031691-sb1.restlets.api.netsuite.com/app/site/hosting"
+echo "   - PRODUCTION: https://8031691.restlets.api.netsuite.com/app/site/hosting"
+echo "   - Note: Sandbox has '-sb1', production doesn't"
+echo "   - No trailing slash"
+echo ""
+
+echo "========================================"
+echo "HOW TO CHECK IN SUPABASE DASHBOARD:"
+echo "========================================"
+echo ""
+echo "1. Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/functions"
+echo "2. Click on 'Secrets' tab"
+echo "3. Verify ALL 8 variables are listed"
+echo "4. Check that values don't have extra spaces or line breaks"
+echo ""
+
+echo "========================================"
+echo "HOW TO SET/UPDATE SECRETS:"
+echo "========================================"
+echo ""
+echo "Using Supabase CLI:"
+echo "  supabase secrets set CANADA_TIRE_BASE_URL=\"https://8031691-sb1.restlets.api.netsuite.com/app/site/hosting\""
+echo "  supabase secrets set CANADA_TIRE_REALM=\"8031691_SB1\""
+echo "  supabase secrets set CANADA_TIRE_CONSUMER_KEY=\"your_key\""
+echo "  supabase secrets set CANADA_TIRE_CONSUMER_SECRET=\"your_secret\""
+echo "  supabase secrets set CANADA_TIRE_TOKEN_ID=\"your_token_id\""
+echo "  supabase secrets set CANADA_TIRE_TOKEN_SECRET=\"your_token_secret\""
+echo "  supabase secrets set CANADA_TIRE_CUSTOMER_ID=\"your_customer_id\""
+echo "  supabase secrets set CANADA_TIRE_CUSTOMER_TOKEN=\"your_customer_token\""
+echo ""
+echo "Then redeploy:"
+echo "  supabase functions deploy distributor --no-verify-jwt"
+echo ""
+
+echo "========================================"
+echo "MOST COMMON ISSUES:"
+echo "========================================"
+echo ""
+echo "❌ Wrong Realm:"
+echo "   - Using '8031691' with sandbox URL"
+echo "   - Using '8031691_SB1' with production URL"
+echo ""
+echo "❌ Mismatched Credentials:"
+echo "   - Consumer key from sandbox, secret from production"
+echo "   - Token ID from one account, secret from another"
+echo ""
+echo "❌ Typos/Extra Characters:"
+echo "   - Extra spaces when copying credentials"
+echo "   - Line breaks in multi-line paste"
+echo "   - Wrong quotes (curly quotes instead of straight quotes)"
+echo ""
+echo "❌ Expired Tokens:"
+echo "   - OAuth tokens may need to be regenerated"
+echo "   - Contact Canada Tire if credentials are old"
+echo ""
+
+echo "========================================"
+echo "NEXT STEPS:"
+echo "========================================"
+echo ""
+echo "1. Verify all 8 secrets are set in Supabase Dashboard"
+echo "2. Confirm realm matches your environment"
+echo "3. Double-check credential values (no typos)"
+echo "4. Redeploy function: supabase functions deploy distributor --no-verify-jwt"
+echo "5. Check logs: supabase functions logs distributor --tail"
+echo "6. Look for this in logs:"
+echo "   [Config] CANADA_TIRE_XXX: [SET - XX characters]"
+echo ""
+echo "The enhanced debug logs will show:"
+echo "  - Which variables are set/missing"
+echo "  - Credential lengths (to spot obvious issues)"
+echo "  - Exact error from Canada Tire API"
+echo ""
