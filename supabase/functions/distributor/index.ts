@@ -201,6 +201,7 @@ async function postToEndpoint(
 
   console.log(`[Canada Tire API] Action: ${action}`);
   console.log(`[Canada Tire API] URL: ${url.toString()}`);
+  console.log(`[Canada Tire API] Request body:`, JSON.stringify(requestBody, null, 2));
 
   const authorization = await buildOAuthHeader(
     route,
@@ -226,6 +227,7 @@ async function postToEndpoint(
     console.log(`[Canada Tire API] Response status: ${response.status}`);
 
     const text = await response.text();
+    console.log(`[Canada Tire API] Response body:`, text);
     const parsed = text ? JSON.parse(text) : { success: false, error: { code: 500, errorMsg: "Empty response" }, data: null };
 
     if (!response.ok || !parsed.success) {
@@ -257,7 +259,8 @@ async function postToEndpoint(
 function createCanadaTireAdapter(config: CanadaTireConfig) {
   return {
     async searchProducts(payload: any) {
-      return await postToEndpoint(config, "searchProducts", payload.filters ? { filters: payload.filters } : {});
+      const body = payload.filters && Object.keys(payload.filters).length > 0 ? { filters: payload.filters } : {};
+      return await postToEndpoint(config, "searchProducts", body);
     },
     async getShipToAddresses() {
       return await postToEndpoint(config, "getShipToAddresses", {});

@@ -340,7 +340,8 @@ export function createCanadaTireAdapter(config: CanadaTireConfig) {
   return {
     async searchProducts(payload: { filters?: unknown }) {
       const filters = validateFilters(payload.filters);
-      const response = await postToEndpoint(config, "searchProducts", filters ? { filters } : {});
+      const body = filters && Object.keys(filters).length > 0 ? { filters } : {};
+      const response = await postToEndpoint(config, "searchProducts", body);
       return response;
     },
     async getShipToAddresses() {
