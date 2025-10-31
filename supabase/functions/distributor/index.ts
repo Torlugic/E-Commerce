@@ -32,6 +32,30 @@ function createAdapter(): ReturnType<typeof createCanadaTireAdapter> {
 
   debugLog("Creating new Canada Tire adapter");
 
+  const requiredVars = [
+    'CANADA_TIRE_BASE_URL',
+    'CANADA_TIRE_CONSUMER_KEY',
+    'CANADA_TIRE_CONSUMER_SECRET',
+    'CANADA_TIRE_TOKEN_ID',
+    'CANADA_TIRE_TOKEN_SECRET',
+    'CANADA_TIRE_CUSTOMER_ID',
+    'CANADA_TIRE_CUSTOMER_TOKEN'
+  ];
+
+  console.log(`[Config] Verifying environment variables...`);
+  for (const varName of requiredVars) {
+    const value = Deno.env.get(varName);
+    if (!value) {
+      console.error(`[Config] MISSING: ${varName}`);
+      throw new AdapterError(`Missing environment variable: ${varName}`, { status: 500 });
+    }
+    if (!varName.includes('SECRET') && !varName.includes('TOKEN')) {
+      console.log(`[Config] ${varName}: ${value}`);
+    } else {
+      console.log(`[Config] ${varName}: [SET - ${value.length} characters]`);
+    }
+  }
+
   const baseUrl = sanitizeBaseUrl(getRequiredEnv("CANADA_TIRE_BASE_URL"), "CANADA_TIRE_BASE_URL");
   const realm = getEnv("CANADA_TIRE_REALM", "8031691_SB1")!;
   const credentials = {
@@ -43,13 +67,17 @@ function createAdapter(): ReturnType<typeof createCanadaTireAdapter> {
     customerToken: getRequiredEnv("CANADA_TIRE_CUSTOMER_TOKEN"),
   };
 
-  console.log(`[Distributor] Configured Canada Tire adapter:`);
-  console.log(`  - Base URL: ${baseUrl}`);
-  console.log(`  - Realm: ${realm}`);
-  console.log(`  - Customer ID: ${credentials.customerId}`);
-  debugLog("Full credentials", {
-    consumerKey: credentials.consumerKey,
-    tokenId: credentials.tokenId,
+  console.log(`[Distributor] ========== CONFIGURATION ==========`);
+  console.log(`[Distributor] Base URL: ${baseUrl}`);
+  console.log(`[Distributor] Realm: ${realm}`);
+  console.log(`[Distributor] Customer ID: ${credentials.customerId}`);
+  console.log(`[Distributor] Consumer Key length: ${credentials.consumerKey.length}`);
+  console.log(`[Distributor] Token ID length: ${credentials.tokenId.length}`);
+  console.log(`[Distributor] =======================================`);
+
+  debugLog("Full credentials (first 10 chars)", {
+    consumerKey: credentials.consumerKey.substring(0, 10) + "...",
+    tokenId: credentials.tokenId.substring(0, 10) + "...",
     customerId: credentials.customerId,
   });
 

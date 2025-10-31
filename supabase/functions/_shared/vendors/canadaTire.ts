@@ -257,8 +257,10 @@ async function postToEndpoint<T extends CanadaTireAction>(
     ...body,
   };
 
+  console.log(`[Canada Tire API] ========== REQUEST START ==========`);
   console.log(`[Canada Tire API] Action: ${action}`);
   console.log(`[Canada Tire API] URL: ${url.toString()}`);
+  console.log(`[Canada Tire API] Realm: ${config.realm}`);
   console.log(`[Canada Tire API] Request body:`, JSON.stringify(requestBody, null, 2));
 
   const authorization = await buildOAuthHeader(
@@ -267,6 +269,9 @@ async function postToEndpoint<T extends CanadaTireAction>(
     config.realm,
     url,
   );
+
+  const maskedAuth = authorization.replace(/oauth_signature="[^"]+"/i, 'oauth_signature="***"');
+  console.log(`[Canada Tire API] OAuth Header (masked):`, maskedAuth);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
@@ -283,46 +288,97 @@ async function postToEndpoint<T extends CanadaTireAction>(
     });
 
     console.log(`[Canada Tire API] Response status: ${response.status} ${response.statusText}`);
+    console.log(`[Canada Tire API] Response headers:`, JSON.stringify(Object.fromEntries(response.headers.entries())));
 
     const text = await response.text();
-    console.log(`[Canada Tire API] Response body:`, text);
+    console.log(`[Canada Tire API] Response body (first 500 chars):`, text.substring(0, 500));
+
+    if (text.startsWith('<!DOCTYPE') || text.startsWith('<html') || text.startsWith('<HTML')) {
+      console.error(`[Canada Tire API] Received HTML instead of JSON - Authentication likely failed`);
+      console.error(`[Canada Tire API] Full HTML response (first 1000 chars):`, text.substring(0, 1000));
+      throw new AdapterError("Canada Tire API returned HTML instead of JSON (OAuth authentication likely failed)", {
+        status: 401,
+        expose: true,
+        details: {
+          hint: "Check OAuth credentials (consumer key/secret, token ID/secret) and realm configuration",
+          responsePreview: text.substring(0, 200),
+        },
+      });
+    }
+
+    if (!text || text.trim() === '') {
+      console.error(`[Canada Tire API] Received empty response`);
+      throw new AdapterError("Canada Tire API returned empty response", {
+        status: 502,
+        expose: true,
+      });
+    }
+
     let parsed: ApiResponse<CanadaTireResponseMap[T]>;
     try {
-      parsed = text ? (JSON.parse(text) as ApiResponse<CanadaTireResponseMap[T]>) : { success: false, error: { code: 500, errorMsg: "Empty response" }, data: undefined as unknown as CanadaTireResponseMap[T] };
-    } catch (error) {
+      parsed = JSON.parse(text) as ApiResponse<CanadaTireResponseMap[T]>;
+      console.log(`[Canada Tire API] Parsed response (success=${parsed.success}):`, JSON.stringify(parsed, null, 2));
+    } catch (parseError) {
+      console.error(`[Canada Tire API] Failed to parse JSON:`, parseError);
+      console.error(`[Canada Tire API] Raw text that failed to parse:`, text);
       throw new AdapterError("Canada Tire API returned malformed JSON", {
         status: 502,
-        cause: error,
+        expose: true,
+        cause: parseError,
+        details: {
+          parseError: parseError instanceof Error ? parseError.message : String(parseError),
+          responseText: text.substring(0, 500),
+        },
+      });
+    }
+
+    if (response.status === 401) {
+      console.error(`[Canada Tire API] 401 Unauthorized - OAuth authentication failed`);
+      throw new AdapterError("OAuth authentication failed", {
+        status: 401,
+        expose: true,
+        details: {
+          hint: "Verify consumer key, consumer secret, token ID, token secret, and realm",
+          apiError: parsed.error,
+        },
       });
     }
 
     if (!response.ok) {
-      throw new AdapterError("Canada Tire API request failed", {
+      console.error(`[Canada Tire API] HTTP error ${response.status}:`, parsed);
+      throw new AdapterError(parsed.error?.errorMsg || `HTTP ${response.status}`, {
         status: mapErrorStatus(parsed.error?.code, response.status),
+        expose: true,
         details: { code: parsed.error?.code, message: parsed.error?.errorMsg },
       });
     }
 
     if (!parsed.success) {
+      console.error(`[Canada Tire API] API returned success=false:`, parsed);
       throw new AdapterError(parsed.error?.errorMsg || "Canada Tire API error", {
         status: mapErrorStatus(parsed.error?.code, 502),
         expose: parsed.error?.code === 400 || parsed.error?.code === 401,
-        details: { code: parsed.error?.code },
+        details: { code: parsed.error?.code, message: parsed.error?.errorMsg },
       });
     }
 
+    console.log(`[Canada Tire API] ========== REQUEST SUCCESS ==========`);
     return parsed;
   } catch (error) {
+    console.error(`[Canada Tire API] ========== REQUEST FAILED ==========`);
     if (error instanceof AdapterError) {
       throw error;
     }
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new AdapterError("Canada Tire API request timed out", {
         status: 504,
+        expose: true,
       });
     }
+    console.error(`[Canada Tire API] Unexpected error:`, error);
     throw new AdapterError("Unexpected error while contacting Canada Tire", {
       status: 502,
+      expose: false,
       cause: error,
     });
   } finally {
