@@ -84,7 +84,10 @@ function normalizeBoolean(value: unknown, field: string): boolean | null | undef
   if (value === null) {
     return null;
   }
-  assert(typeof value === "boolean", `${field} must be a boolean or null`);
+  if (value === "" || (typeof value === "string" && value.trim() === "")) {
+    return undefined;
+  }
+  assert(typeof value === "boolean", `${field} must be a boolean, null, or empty string`);
   return value;
 }
 
@@ -106,12 +109,14 @@ function validateFilters(input: unknown): ProductSearchFilters | undefined {
   if (size) filters.size = size;
   if (raw.partNumber !== undefined) {
     assert(Array.isArray(raw.partNumber), "filters.partNumber must be an array");
-    const parts = raw.partNumber.map((value, index) => {
-      const part = normalizeString(value, `filters.partNumber[${index}]`);
-      assert(part, `filters.partNumber[${index}] must be a non-empty string`);
-      return part!;
-    });
-    filters.partNumber = parts;
+    if (raw.partNumber.length > 0) {
+      const parts = raw.partNumber.map((value, index) => {
+        const part = normalizeString(value, `filters.partNumber[${index}]`);
+        assert(part, `filters.partNumber[${index}] must be a non-empty string`);
+        return part!;
+      });
+      filters.partNumber = parts;
+    }
   }
   const brand = normalizeString(raw.brand, "filters.brand");
   if (brand) filters.brand = brand;
@@ -245,6 +250,16 @@ async function postToEndpoint<T extends CanadaTireAction>(
   url.searchParams.set("script", route.script);
   url.searchParams.set("deploy", route.deploy);
 
+  const requestBody = {
+    customerId: config.credentials.customerId,
+    customerToken: config.credentials.customerToken,
+    ...body,
+  };
+
+  console.log(`[Canada Tire API] Action: ${action}`);
+  console.log(`[Canada Tire API] URL: ${url.toString()}`);
+  console.log(`[Canada Tire API] Request body:`, JSON.stringify(requestBody, null, 2));
+
   const authorization = await buildOAuthHeader(
     route,
     config.credentials,
@@ -262,15 +277,14 @@ async function postToEndpoint<T extends CanadaTireAction>(
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify({
-        customerId: config.credentials.customerId,
-        customerToken: config.credentials.customerToken,
-        ...body,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
+    console.log(`[Canada Tire API] Response status: ${response.status} ${response.statusText}`);
+
     const text = await response.text();
+    console.log(`[Canada Tire API] Response body:`, text);
     let parsed: ApiResponse<CanadaTireResponseMap[T]>;
     try {
       parsed = text ? (JSON.parse(text) as ApiResponse<CanadaTireResponseMap[T]>) : { success: false, error: { code: 500, errorMsg: "Empty response" }, data: undefined as unknown as CanadaTireResponseMap[T] };

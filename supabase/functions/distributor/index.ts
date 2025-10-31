@@ -148,7 +148,9 @@ Deno.serve(async (request) => {
   let body: unknown;
   try {
     body = await request.json();
-  } catch {
+    console.log("[Distributor] Received request body:", JSON.stringify(body, null, 2));
+  } catch (error) {
+    console.error("[Distributor] Failed to parse JSON:", error);
     return jsonResponse(400, {
       success: false,
       error: { code: 400, message: "Request body must be valid JSON" },
@@ -158,7 +160,9 @@ Deno.serve(async (request) => {
   let parsed: DistributorRequestPayload<CanadaTireAction>;
   try {
     parsed = parseRequestBody(body);
+    console.log("[Distributor] Parsed request:", JSON.stringify(parsed, null, 2));
   } catch (error) {
+    console.error("[Distributor] Failed to parse request body:", error);
     if (error instanceof AdapterError) {
       return handleAdapterError(error);
     }
@@ -168,8 +172,10 @@ Deno.serve(async (request) => {
   try {
     const adapter = createAdapter();
     const response = await executeAction(adapter, parsed.action, parsed.payload);
+    console.log("[Distributor] Request successful");
     return jsonResponse(200, response);
   } catch (error) {
+    console.error("[Distributor] Request failed:", error);
     if (error instanceof AdapterError) {
       return handleAdapterError(error);
     }
