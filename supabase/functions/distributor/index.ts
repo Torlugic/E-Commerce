@@ -1,12 +1,275 @@
-import { AdapterError } from "../_shared/errors.ts";
-import { getEnv, getRequiredEnv, sanitizeBaseUrl } from "../_shared/env.ts";
-import { createCanadaTireAdapter, type CanadaTireConfig } from "../_shared/vendors/canadaTire.ts";
-import {
-  type CanadaTireAction,
-  type DistributorActionPayload,
-  type DistributorRequestPayload,
-  type DistributorResponse,
-} from "../_shared/types.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// Errors
+class AdapterError extends Error {
+  readonly status: number;
+  readonly expose: boolean;
+  readonly details?: Record<string, unknown>;
+
+  constructor(
+    message: string,
+    options: {
+      status?: number;
+      expose?: boolean;
+      cause?: unknown;
+      details?: Record<string, unknown>;
+    } = {},
+  ) {
+    super(message, { cause: options.cause });
+    this.status = options.status ?? 500;
+    this.expose = options.expose ?? false;
+    this.details = options.details;
+  }
+}
+
+function assert(condition: unknown, message: string, status = 400): asserts condition {
+  if (!condition) {
+    throw new AdapterError(message, { status, expose: true });
+  }
+}
+
+// Env helpers
+function getRequiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) {
+    throw new AdapterError(`Missing environment variable: ${name}`, {
+      status: 500,
+    });
+  }
+  return value;
+}
+
+function getEnv(name: string, fallback?: string): string | undefined {
+  const value = Deno.env.get(name);
+  if (value === undefined || value === "") {
+    return fallback;
+  }
+  return value;
+}
+
+function sanitizeBaseUrl(value: string, label: string): string {
+  try {
+    const url = new URL(value);
+    url.pathname = url.pathname.replace(/\/+$|$/, "");
+    return url.toString().replace(/\/$/, "");
+  } catch (error) {
+    throw new AdapterError(`Invalid URL provided for ${label}`, {
+      status: 500,
+      cause: error,
+    });
+  }
+}
+
+// OAuth
+const OAUTH_SIGNATURE_METHOD = "HMAC-SHA256";
+const OAUTH_VERSION = "1.0";
+
+interface OAuthCredentials {
+  consumerKey: string;
+  consumerSecret: string;
+  tokenId: string;
+  tokenSecret: string;
+}
+
+interface OAuthParams {
+  script: string;
+  deploy: string;
+}
+
+function oauthPercentEncode(value: string): string {
+  return encodeURIComponent(value)
+    .replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/%7E/g, "~");
+}
+
+function buildParameterString(entries: Array<[string, string]>): string {
+  return entries
+    .map(([key, value]) => `${oauthPercentEncode(key)}=${oauthPercentEncode(value)}`)
+    .join("&");
+}
+
+async function signBaseString(signingKey: string, baseString: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(signingKey),
+    {
+      name: "HMAC",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(baseString));
+  const bytes = new Uint8Array(signature);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+async function buildOAuthHeader(
+  params: OAuthParams,
+  credentials: OAuthCredentials,
+  realm: string,
+  requestUrl: URL,
+): Promise<string> {
+  const oauthNonce = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  const oauthTimestamp = Math.floor(Date.now() / 1000).toString();
+
+  const baseEntries: Array<[string, string]> = [
+    ["deploy", params.deploy],
+    ["oauth_consumer_key", credentials.consumerKey],
+    ["oauth_nonce", oauthNonce],
+    ["oauth_signature_method", OAUTH_SIGNATURE_METHOD],
+    ["oauth_timestamp", oauthTimestamp],
+    ["oauth_token", credentials.tokenId],
+    ["oauth_version", OAUTH_VERSION],
+    ["script", params.script],
+  ];
+
+  baseEntries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+  const normalizedUrl = `${requestUrl.protocol}//${requestUrl.host}${requestUrl.pathname}`;
+  const parameterString = buildParameterString(baseEntries);
+  const baseString = [
+    "POST",
+    oauthPercentEncode(normalizedUrl),
+    oauthPercentEncode(parameterString),
+  ].join("&");
+
+  const signingKey = `${oauthPercentEncode(credentials.consumerSecret)}&${oauthPercentEncode(credentials.tokenSecret)}`;
+  const signature = await signBaseString(signingKey, baseString);
+
+  const headerParams: Array<[string, string]> = [
+    ["realm", realm],
+    ["oauth_consumer_key", credentials.consumerKey],
+    ["oauth_token", credentials.tokenId],
+    ["oauth_signature_method", OAUTH_SIGNATURE_METHOD],
+    ["oauth_timestamp", oauthTimestamp],
+    ["oauth_nonce", oauthNonce],
+    ["oauth_version", OAUTH_VERSION],
+    ["oauth_signature", signature],
+  ];
+
+  return `OAuth ${headerParams
+    .map(([key, value]) => `${key}="${oauthPercentEncode(value)}"`)
+    .join(",")}`;
+}
+
+// Types (inline only what's needed)
+type CanadaTireAction = "searchProducts" | "getShipToAddresses" | "submitOrder" | "updateOrderAddress";
+
+// Canada Tire Adapter (simplified inline version)
+const ROUTES = {
+  searchProducts: { script: "customscript_item_search_rl", deploy: "customdeploy_item_search_rl" },
+  getShipToAddresses: { script: "customscript_get_cust_addr_rl", deploy: "customdeploy_get_cust_addr_rl" },
+  submitOrder: { script: "customscript_create_sales_order_rl", deploy: "customdeploy_create_sales_order_rl" },
+  updateOrderAddress: { script: "customscript_update_order_addr_rl", deploy: "customdeploy_update_order_addr_rl" },
+} as const;
+
+interface CanadaTireConfig {
+  baseUrl: string;
+  realm: string;
+  credentials: OAuthCredentials & {
+    customerId: string;
+    customerToken: string;
+  };
+  timeoutMs?: number;
+}
+
+const DEFAULT_TIMEOUT_MS = 30000;
+
+async function postToEndpoint(
+  config: CanadaTireConfig,
+  action: CanadaTireAction,
+  body: Record<string, unknown>,
+): Promise<any> {
+  const route = ROUTES[action];
+  const url = new URL(`${config.baseUrl}/restlet.nl`);
+  url.searchParams.set("script", route.script);
+  url.searchParams.set("deploy", route.deploy);
+
+  const requestBody = {
+    customerId: config.credentials.customerId,
+    customerToken: config.credentials.customerToken,
+    ...body,
+  };
+
+  console.log(`[Canada Tire API] Action: ${action}`);
+  console.log(`[Canada Tire API] URL: ${url.toString()}`);
+
+  const authorization = await buildOAuthHeader(
+    route,
+    config.credentials,
+    config.realm,
+    url,
+  );
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": authorization,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    console.log(`[Canada Tire API] Response status: ${response.status}`);
+
+    const text = await response.text();
+    const parsed = text ? JSON.parse(text) : { success: false, error: { code: 500, errorMsg: "Empty response" }, data: null };
+
+    if (!response.ok || !parsed.success) {
+      throw new AdapterError(parsed.error?.errorMsg || "Canada Tire API error", {
+        status: parsed.error?.code || 502,
+        expose: true,
+      });
+    }
+
+    return parsed;
+  } catch (error) {
+    if (error instanceof AdapterError) {
+      throw error;
+    }
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new AdapterError("Canada Tire API request timed out", {
+        status: 504,
+      });
+    }
+    throw new AdapterError("Unexpected error while contacting Canada Tire", {
+      status: 502,
+      cause: error,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function createCanadaTireAdapter(config: CanadaTireConfig) {
+  return {
+    async searchProducts(payload: any) {
+      return await postToEndpoint(config, "searchProducts", payload.filters ? { filters: payload.filters } : {});
+    },
+    async getShipToAddresses() {
+      return await postToEndpoint(config, "getShipToAddresses", {});
+    },
+    async submitOrder(payload: any) {
+      return await postToEndpoint(config, "submitOrder", { orderDetails: payload.orderDetails });
+    },
+    async updateOrderAddress(payload: any) {
+      return await postToEndpoint(config, "updateOrderAddress", { orderDetails: payload.orderDetails });
+    },
+  };
+}
 
 const JSON_HEADERS = {
   "Content-Type": "application/json",
@@ -30,21 +293,10 @@ function createAdapter(): ReturnType<typeof createCanadaTireAdapter> {
     customerToken: getRequiredEnv("CANADA_TIRE_CUSTOMER_TOKEN"),
   };
 
-  const timeoutEnv = getEnv("CANADA_TIRE_TIMEOUT_MS");
-  let timeoutMs: number | undefined;
-  if (timeoutEnv) {
-    const parsed = Number(timeoutEnv);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      throw new AdapterError("CANADA_TIRE_TIMEOUT_MS must be a positive number", { status: 500 });
-    }
-    timeoutMs = parsed;
-  }
-
   const config: CanadaTireConfig = {
     baseUrl,
     realm,
     credentials,
-    timeoutMs,
   };
 
   cachedAdapter = createCanadaTireAdapter(config);
@@ -96,26 +348,26 @@ function handleUnknownError(error: unknown): Response {
   });
 }
 
-async function executeAction<A extends CanadaTireAction>(
+async function executeAction(
   adapter: ReturnType<typeof createCanadaTireAdapter>,
-  action: A,
-  payload: DistributorActionPayload[A],
-): Promise<DistributorResponse<A>> {
+  action: CanadaTireAction,
+  payload: any,
+): Promise<any> {
   switch (action) {
     case "searchProducts":
-      return (await adapter.searchProducts(payload)) as DistributorResponse<A>;
+      return await adapter.searchProducts(payload);
     case "getShipToAddresses":
-      return (await adapter.getShipToAddresses()) as DistributorResponse<A>;
+      return await adapter.getShipToAddresses();
     case "submitOrder":
-      return (await adapter.submitOrder(payload)) as DistributorResponse<A>;
+      return await adapter.submitOrder(payload);
     case "updateOrderAddress":
-      return (await adapter.updateOrderAddress(payload)) as DistributorResponse<A>;
+      return await adapter.updateOrderAddress(payload);
     default:
       throw new AdapterError("Unsupported action", { status: 400, expose: true });
   }
 }
 
-function parseRequestBody(body: unknown): DistributorRequestPayload<CanadaTireAction> {
+function parseRequestBody(body: unknown): any {
   if (!body || typeof body !== "object") {
     throw new AdapterError("Request body must be an object", { status: 400, expose: true });
   }
@@ -128,7 +380,7 @@ function parseRequestBody(body: unknown): DistributorRequestPayload<CanadaTireAc
     throw new AdapterError("Unsupported action", { status: 400, expose: true });
   }
 
-  const payload = (value.payload ?? {}) as DistributorActionPayload[CanadaTireAction];
+  const payload = (value.payload ?? {}) as any;
 
   return {
     vendor: "canadaTire",
@@ -157,7 +409,7 @@ Deno.serve(async (request) => {
     });
   }
 
-  let parsed: DistributorRequestPayload<CanadaTireAction>;
+  let parsed: any;
   try {
     parsed = parseRequestBody(body);
     console.log("[Distributor] Parsed request:", JSON.stringify(parsed, null, 2));
