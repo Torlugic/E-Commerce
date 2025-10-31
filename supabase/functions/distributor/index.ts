@@ -1,3 +1,4 @@
+//supabase>functions>distributor>index.ts
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 // Errors
