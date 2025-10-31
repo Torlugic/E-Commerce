@@ -19,6 +19,7 @@ import ReturnsPage from "./pages/ReturnsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import ContactPage from "./pages/ContactPage";
+import CanadaTirePage from "./pages/CanadaTirePage";
 
 const rawBase = import.meta.env.BASE_URL ?? '/'
 const basename = rawBase === './'
@@ -41,6 +42,7 @@ const router = createBrowserRouter([
       { path: "privacy", element: <PrivacyPage /> },
       { path: "terms", element: <TermsPage /> },
       { path: "contact", element: <ContactPage /> },
+      { path: "canada-tire", element: <CanadaTirePage /> },
       { path: '*', element: <NotFound /> }, // catch-all 404
     ],
   },
