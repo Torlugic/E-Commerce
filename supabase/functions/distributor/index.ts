@@ -16,11 +16,15 @@ const JSON_HEADERS = {
   "Content-Type": "application/json",
 };
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+function getCorsHeaders(request?: Request): Record<string, string> {
+  const origin = request?.headers.get("Origin") || "*";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+    "Access-Control-Max-Age": "86400",
+  };
+}
 
 let cachedAdapter: ReturnType<typeof createCanadaTireAdapter> | null = null;
 
@@ -103,14 +107,14 @@ function isCanadaTireAction(value: unknown): value is CanadaTireAction {
   );
 }
 
-function jsonResponse(status: number, body: unknown): Response {
+function jsonResponse(status: number, body: unknown, request?: Request): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...JSON_HEADERS, ...CORS_HEADERS },
+    headers: { ...JSON_HEADERS, ...getCorsHeaders(request) },
   });
 }
 
-function handleAdapterError(error: AdapterError): Response {
+function handleAdapterError(error: AdapterError, request?: Request): Response {
   const status = error.status ?? 500;
   if (!error.expose) {
     console.error("Distributor adapter error", {
@@ -125,10 +129,10 @@ function handleAdapterError(error: AdapterError): Response {
       code: status,
       message: error.expose ? error.message : "An unexpected error occurred.",
     },
-  });
+  }, request);
 }
 
-function handleUnknownError(error: unknown): Response {
+function handleUnknownError(error: unknown, request?: Request): Response {
   console.error("Distributor handler crashed", error instanceof Error ? { message: error.message, stack: error.stack } : error);
   return jsonResponse(500, {
     success: false,
@@ -136,7 +140,7 @@ function handleUnknownError(error: unknown): Response {
       code: 500,
       message: "An unexpected error occurred.",
     },
-  });
+  }, request);
 }
 
 async function executeAction(
@@ -181,10 +185,16 @@ function parseRequestBody(body: unknown): any {
 }
 
 Deno.serve(async (request) => {
+  const origin = request.headers.get("Origin");
+  console.log(`[Distributor] ${request.method} request from origin: ${origin || "none"}`);
+
   if (request.method === "OPTIONS") {
+    console.log("[Distributor] Handling OPTIONS preflight request");
+    const corsHeaders = getCorsHeaders(request);
+    console.log("[Distributor] Returning CORS headers:", corsHeaders);
     return new Response(null, {
-      status: 200,
-      headers: CORS_HEADERS,
+      status: 204,
+      headers: corsHeaders,
     });
   }
 
@@ -192,7 +202,7 @@ Deno.serve(async (request) => {
     return jsonResponse(405, {
       success: false,
       error: { code: 405, message: "Method Not Allowed" },
-    });
+    }, request);
   }
 
   let body: unknown;
@@ -205,7 +215,7 @@ Deno.serve(async (request) => {
     return jsonResponse(400, {
       success: false,
       error: { code: 400, message: "Request body must be valid JSON" },
-    });
+    }, request);
   }
 
   let parsed: any;
@@ -216,9 +226,9 @@ Deno.serve(async (request) => {
   } catch (error) {
     console.error("[Distributor] Failed to parse request body:", error);
     if (error instanceof AdapterError) {
-      return handleAdapterError(error);
+      return handleAdapterError(error, request);
     }
-    return handleUnknownError(error);
+    return handleUnknownError(error, request);
   }
 
   try {
@@ -227,12 +237,12 @@ Deno.serve(async (request) => {
     const response = await executeAction(adapter, parsed.action, parsed.payload);
     console.log("[Distributor] Request successful");
     debugLog("Response data", response);
-    return jsonResponse(200, response);
+    return jsonResponse(200, response, request);
   } catch (error) {
     console.error("[Distributor] Request failed:", error);
     if (error instanceof AdapterError) {
-      return handleAdapterError(error);
+      return handleAdapterError(error, request);
     }
-    return handleUnknownError(error);
+    return handleUnknownError(error, request);
   }
 });
