@@ -67,9 +67,12 @@ function createAdapter(): ReturnType<typeof createCanadaTireAdapter> {
     customerToken: getRequiredEnv("CANADA_TIRE_CUSTOMER_TOKEN"),
   };
 
+  const environmentType = realm.includes('_SB1') ? 'Sandbox (Testing)' : 'Production (Live)';
+
   console.log(`[Distributor] ========== CONFIGURATION ==========`);
+  console.log(`[Distributor] Environment: ${environmentType}`);
   console.log(`[Distributor] Base URL: ${baseUrl}`);
-  console.log(`[Distributor] Realm: ${realm}`);
+  console.log(`[Distributor] Realm (Environment ID): ${realm}`);
   console.log(`[Distributor] Customer ID: ${credentials.customerId}`);
   console.log(`[Distributor] Consumer Key length: ${credentials.consumerKey.length}`);
   console.log(`[Distributor] Token ID length: ${credentials.tokenId.length}`);

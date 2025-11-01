@@ -11,6 +11,20 @@ This is a **credential configuration issue** - NOT a code problem.
 
 ---
 
+## Understanding "Realm" and "Environment"
+
+**Quick Terminology:**
+- **Environment** = Sandbox or Production (the deployment context you're using)
+- **Realm** = NetSuite account ID with optional environment suffix (the technical OAuth identifier)
+
+**Critical Rule:** Realm must match your environment:
+- **Sandbox** → Realm: `8031691_SB1` (with `_SB1` suffix) + URL contains `-sb1`
+- **Production** → Realm: `8031691` (no suffix) + URL has no `-sb1`
+
+For detailed terminology, see `TERMINOLOGY.md`.
+
+---
+
 ## Fix It Now (2 Minutes)
 
 ### Option 1: Quick Fix (Works 90% of time)
@@ -70,10 +84,10 @@ npx supabase functions deploy distributor --no-verify-jwt
 
 ## What's Wrong?
 
-Your **REALM** doesn't match your **BASE_URL** environment:
+Your **realm (environment identifier)** doesn't match your **base URL environment**:
 
-- Sandbox needs: `REALM=8031691_SB1` and `-sb1` in URL
-- Production needs: `REALM=8031691` and NO `-sb1` in URL
+- **Sandbox** needs: `REALM=8031691_SB1` (with `_SB1`) and `-sb1` in URL
+- **Production** needs: `REALM=8031691` (no suffix) and NO `-sb1` in URL
 
 OR one or more of the 8 required secrets is missing.
 

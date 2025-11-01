@@ -9,6 +9,10 @@ echo "========================================"
 echo "Canada Tire OAuth Credential Validator"
 echo "========================================"
 echo ""
+echo "This script validates your OAuth credentials and"
+echo "checks that your realm (environment identifier)"
+echo "matches your base URL environment."
+echo ""
 
 # Colors for output
 RED='\033[0;31m'
@@ -101,29 +105,39 @@ check_secret "CANADA_TIRE_CUSTOMER_ID" "customer_id"
 check_secret "CANADA_TIRE_CUSTOMER_TOKEN" "key"
 echo ""
 
-echo "Step 4: Environment consistency check"
-echo "--------------------------------------"
+echo "Step 4: Environment Type & Consistency Check"
+echo "----------------------------------------------"
+echo "Note: Realm is the NetSuite environment identifier"
+echo ""
 BASE_URL=$(npx supabase secrets list 2>/dev/null | grep "^CANADA_TIRE_BASE_URL" | awk '{print $2}')
 REALM=$(npx supabase secrets list 2>/dev/null | grep "^CANADA_TIRE_REALM" | awk '{print $2}')
 
 if [ -n "$BASE_URL" ] && [ -n "$REALM" ]; then
     if [[ $BASE_URL == *"-sb1"* ]]; then
-        echo -e "${BLUE}Environment detected: SANDBOX${NC}"
+        echo -e "${BLUE}Environment Type: SANDBOX (Testing)${NC}"
+        echo "  Base URL contains: -sb1"
+        echo "  Realm should contain: _SB1"
+        echo ""
         if [[ $REALM == *"_SB1"* ]]; then
             echo -e "${GREEN}✓${NC} Realm matches sandbox environment"
+            echo "  Realm: $REALM"
         else
-            echo -e "${RED}✗${NC} REALM should end with '_SB1' for sandbox"
-            echo "  Current: $REALM"
+            echo -e "${RED}✗${NC} MISMATCH: Realm missing '_SB1' suffix for sandbox"
+            echo "  Current Realm: $REALM"
             echo "  Expected: ${REALM}_SB1 or 8031691_SB1"
         fi
     else
-        echo -e "${BLUE}Environment detected: PRODUCTION${NC}"
+        echo -e "${BLUE}Environment Type: PRODUCTION (Live)${NC}"
+        echo "  Base URL: No -sb1"
+        echo "  Realm should: Have no _SB1 suffix"
+        echo ""
         if [[ $REALM == *"_SB1"* ]]; then
-            echo -e "${RED}✗${NC} REALM should NOT contain '_SB1' for production"
-            echo "  Current: $REALM"
+            echo -e "${RED}✗${NC} MISMATCH: Realm has '_SB1' for production"
+            echo "  Current Realm: $REALM"
             echo "  Expected: Remove _SB1 suffix"
         else
             echo -e "${GREEN}✓${NC} Realm matches production environment"
+            echo "  Realm: $REALM"
         fi
     fi
 else
@@ -135,9 +149,10 @@ echo "Step 5: Recommendations"
 echo "-----------------------"
 echo "If authentication is failing:"
 echo ""
-echo "1. ${BLUE}Verify environment match:${NC}"
-echo "   Sandbox: REALM='8031691_SB1' + URL contains '-sb1'"
-echo "   Production: REALM='8031691' + URL has no '-sb1'"
+echo "1. ${BLUE}Verify environment match (Realm must match URL):${NC}"
+echo "   Sandbox: REALM='8031691_SB1' (with _SB1) + URL contains '-sb1'"
+echo "   Production: REALM='8031691' (no suffix) + URL has no '-sb1'"
+echo "   See TERMINOLOGY.md for detailed explanation"
 echo ""
 echo "2. ${BLUE}Check for typos:${NC}"
 echo "   - No extra spaces before/after values"

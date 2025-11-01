@@ -1,5 +1,15 @@
 # OAuth Fix Checklist ✓
 
+## Quick Terminology Reminder
+
+- **Environment** = Sandbox (testing) or Production (live)
+- **Realm** = NetSuite account ID with optional environment suffix
+- Must match: Sandbox realm (`_SB1`) with sandbox URL (`-sb1`)
+
+See `TERMINOLOGY.md` for details.
+
+---
+
 ## Quick Status Check
 
 Run this first:
@@ -11,26 +21,26 @@ Run this first:
 
 ## Step-by-Step Fix
 
-### Step 1: Identify Environment
+### Step 1: Identify Environment (Realm Type)
 - [ ] My credentials are from: **Sandbox** ☐ or **Production** ☐
 
-### Step 2: Set Correct REALM and BASE_URL
+### Step 2: Set Correct Environment Identifier (Realm) and Base URL
 
-**If Sandbox:**
+**If Sandbox Environment:**
 ```bash
 npx supabase secrets set CANADA_TIRE_REALM="8031691_SB1"
 npx supabase secrets set CANADA_TIRE_BASE_URL="https://8031691-sb1.restlets.api.netsuite.com/app/site/hosting"
 ```
-- [ ] REALM set with `_SB1` suffix
-- [ ] URL contains `-sb1`
+- [ ] Realm (environment identifier) set with `_SB1` suffix
+- [ ] URL contains `-sb1` matching sandbox realm
 
-**If Production:**
+**If Production Environment:**
 ```bash
 npx supabase secrets set CANADA_TIRE_REALM="8031691"
 npx supabase secrets set CANADA_TIRE_BASE_URL="https://8031691.restlets.api.netsuite.com/app/site/hosting"
 ```
-- [ ] REALM has NO `_SB1` suffix
-- [ ] URL has NO `-sb1`
+- [ ] Realm (environment identifier) has NO `_SB1` suffix
+- [ ] URL has NO `-sb1` matching production realm
 
 ### Step 3: Verify All 8 Secrets Are Set
 
@@ -79,7 +89,7 @@ Go to: **Supabase Dashboard → Functions → distributor → Logs**
 **Look for:**
 - [ ] `[Canada Tire API] Response status: 200 OK`
 - [ ] `[Canada Tire API] ========== REQUEST SUCCESS ==========`
-- [ ] `[Distributor] Realm: 8031691_SB1` (or `8031691` for production)
+- [ ] `[Distributor] Realm: 8031691_SB1` (sandbox) or `8031691` (production)
 
 ### Step 7: Test UI
 
@@ -99,9 +109,9 @@ Go to: **Supabase Dashboard → Functions → distributor → Logs**
 ### If Test Still Fails
 
 **Error: "Received HTML instead of JSON"**
-- [ ] Double-check REALM matches URL environment
+- [ ] Double-check realm (environment identifier) matches URL environment
 - [ ] Verify no typos in credentials
-- [ ] Confirm credentials are from correct environment
+- [ ] Confirm all credentials are from the same environment (sandbox or production)
 - [ ] Check credentials are not expired
 
 **Error: "Missing environment variable"**

@@ -1,5 +1,17 @@
 # Troubleshooting OAuth Authentication Issues
 
+## Understanding Key Terms
+
+Before troubleshooting, understand these terms:
+- **Environment** = Sandbox (testing) or Production (live deployment)
+- **Realm** = OAuth 1.0 term for NetSuite account identifier with optional environment suffix
+  - Sandbox: `8031691_SB1` (with `_SB1`)
+  - Production: `8031691` (no suffix)
+
+For complete terminology, see `TERMINOLOGY.md`.
+
+---
+
 ## "Canada Tire API returned malformed JSON" Error
 
 This error typically means the API is returning HTML instead of JSON, which almost always indicates an **OAuth authentication failure**.
@@ -48,13 +60,14 @@ After deploying the updated function, you'll see detailed logs like:
 
 ## Common OAuth Issues and Solutions
 
-### 1. Wrong Realm
+### 1. Wrong Realm (Environment Identifier)
 
 **Symptom:** Getting HTML error page or 401 Unauthorized
 
 **Check:**
-- Sandbox should use: `8031691_SB1`
-- Production should use: `8031691`
+- Sandbox environment should use realm: `8031691_SB1` (with `_SB1` suffix)
+- Production environment should use realm: `8031691` (no suffix)
+- Realm must match your BASE_URL environment
 
 **Solution:**
 ```bash

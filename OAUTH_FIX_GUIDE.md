@@ -15,6 +15,24 @@ This is a **credential configuration issue**, not a code problem.
 
 ---
 
+## Understanding Terminology: "Realm" vs "Environment"
+
+Before diving into troubleshooting, it's important to understand the terminology:
+
+**Environment** = The deployment context you're working in:
+- **Sandbox** - Testing environment with test data
+- **Production** - Live environment with real data
+
+**Realm** = The OAuth 1.0 technical term for NetSuite's account identifier:
+- **Sandbox realm**: `8031691_SB1` (account ID + `_SB1` suffix)
+- **Production realm**: `8031691` (account ID only, no suffix)
+
+**Key Point:** Realm is simply NetSuite's way of identifying which environment (sandbox or production) your OAuth request is for. Throughout this guide, when we say "realm," we're referring to this environment identifier.
+
+For complete terminology details, see `TERMINOLOGY.md`.
+
+---
+
 ## Root Causes (In Order of Likelihood)
 
 ### 1. Environment Mismatch (80% of cases)
@@ -74,9 +92,9 @@ CANADA_TIRE_BASE_URL = "https://8031691.restlets.api.netsuite.com/app/site/hosti
 
 ### Step 1: Identify Your Environment
 
-**Question:** Where did your credentials come from?
-- [ ] Canada Tire Sandbox NetSuite
-- [ ] Canada Tire Production NetSuite
+**Question:** Which environment are your credentials from?
+- [ ] **Sandbox** (testing environment) - Credentials include `_SB1` suffix in realm
+- [ ] **Production** (live environment) - Credentials have no suffix in realm
 
 ### Step 2: Verify Supabase Secrets
 

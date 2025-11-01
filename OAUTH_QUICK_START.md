@@ -9,7 +9,9 @@ Canada Tire API returned HTML instead of JSON (OAuth authentication likely faile
 
 ## The Solution (90% of cases)
 
-Your REALM doesn't match your BASE_URL environment.
+Your **realm (environment identifier)** doesn't match your **base URL environment**.
+
+**What's a realm?** It's NetSuite's OAuth term for your account ID with an optional environment suffix (`_SB1` for sandbox). See `TERMINOLOGY.md` for details.
 
 ### For Sandbox (Most Common)
 

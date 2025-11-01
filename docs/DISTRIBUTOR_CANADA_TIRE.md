@@ -11,8 +11,8 @@ credentials, and pass the file to `supabase functions serve`.
 
 | Secret | Description |
 | --- | --- |
-| `CANADA_TIRE_BASE_URL` | Base URL for the RESTlet host (sandbox: `https://8031691-sb1.restlets.api.netsuite.com/app/site/hosting`). |
-| `CANADA_TIRE_REALM` | OAuth realm (`8031691_SB1` for sandbox, `8031691` for production). |
+| `CANADA_TIRE_BASE_URL` | Base URL for the RESTlet host. Sandbox: `https://8031691-sb1.restlets.api.netsuite.com/app/site/hosting` (contains `-sb1`). Production: `https://8031691.restlets.api.netsuite.com/app/site/hosting` (no `-sb1`). |
+| `CANADA_TIRE_REALM` | OAuth realm (NetSuite account identifier with optional environment suffix). Sandbox: `8031691_SB1` (with `_SB1`). Production: `8031691` (no suffix). Must match the environment of your BASE_URL. |
 | `CANADA_TIRE_CONSUMER_KEY` | OAuth consumer key provided by Canada Tire. |
 | `CANADA_TIRE_CONSUMER_SECRET` | OAuth consumer secret. |
 | `CANADA_TIRE_TOKEN_ID` | Token ID (OAuth access token). |

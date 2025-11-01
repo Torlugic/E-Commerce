@@ -13,6 +13,10 @@ export interface OAuthParams {
   deploy: string;
 }
 
+/**
+ * OAuth percent-encoding as per RFC 3986.
+ * Encodes special characters for OAuth signature generation.
+ */
 function oauthPercentEncode(value: string): string {
   return encodeURIComponent(value)
     .replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
@@ -25,6 +29,12 @@ function buildParameterString(entries: Array<[string, string]>): string {
     .join("&");
 }
 
+/**
+ * Generates HMAC-SHA256 signature for OAuth 1.0 authentication.
+ * @param signingKey - Combined consumer secret and token secret
+ * @param baseString - OAuth signature base string
+ * @returns Base64-encoded signature
+ */
 async function signBaseString(signingKey: string, baseString: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -46,6 +56,18 @@ async function signBaseString(signingKey: string, baseString: string): Promise<s
   return btoa(binary);
 }
 
+/**
+ * Builds OAuth 1.0 Authorization header for NetSuite RESTlet requests.
+ *
+ * @param params - RESTlet script and deploy parameters
+ * @param credentials - OAuth consumer and token credentials
+ * @param realm - NetSuite account identifier with optional environment suffix.
+ *                Sandbox: "8031691_SB1" (with _SB1 suffix)
+ *                Production: "8031691" (no suffix)
+ *                Must match the environment of your BASE_URL.
+ * @param requestUrl - The full RESTlet endpoint URL
+ * @returns OAuth Authorization header value
+ */
 export async function buildOAuthHeader(
   params: OAuthParams,
   credentials: OAuthCredentials,
